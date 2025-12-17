@@ -1,26 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
+  --green-primary: #4ADE80;
+  --green-dark: #22C55E;
+  --purple-primary: #A78BFA;
+  --purple-light: #DDD6FE;
+  --pink-accent: #F472B6;
+  --yellow-accent: #FACC15;
+  --lavender: #E8E4F0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Poppins', sans-serif;
+  --font-serif: 'Playfair Display', serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Decorative shapes */
+.blob-shape {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.pill-shape {
+  border-radius: 100px;
+}
+
+/* Italic accent font */
+.font-accent {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+}
+
+/* Blockly styles - override default heights */
+.blocklyWorkspace {
+  background-color: #f9f9f9 !important;
+}
+
+.blocklyToolboxDiv {
+  background-color: #e5e5e5 !important;
+}
+
+.blocklyFlyout {
+  fill: #f0f0f0 !important;
+}
+
+/* Make sure blockly scrollbars work */
+.blocklyScrollbarVertical,
+.blocklyScrollbarHorizontal {
+  z-index: 10;
+}
+
+/* =====================================================
+   HIGH CONTRAST MODE - Accessibility for Color Blind Users
+   ===================================================== */
+
+/* High contrast color palette using patterns and strong contrasts */
+.high-contrast {
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --green-primary: #00FF00;
+  --green-dark: #00CC00;
+  --purple-primary: #FFFF00;
+  --purple-light: #FFFFCC;
+  --pink-accent: #FF00FF;
+  --yellow-accent: #FFFF00;
+  --lavender: #1A1A1A;
+}
+
+/* High contrast body styles */
+.high-contrast body {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+/* High contrast links and buttons */
+.high-contrast a,
+.high-contrast button {
+  border: 2px solid #FFFFFF;
+}
+
+.high-contrast a:focus,
+.high-contrast button:focus {
+  outline: 3px solid #FFFF00;
+  outline-offset: 2px;
+}
+
+/* High contrast for game board cells */
+.high-contrast .cell-start {
+  background: #0000FF !important;
+  border: 3px solid #FFFFFF !important;
+}
+
+.high-contrast .cell-goal {
+  background: #00FF00 !important;
+  border: 3px solid #FFFFFF !important;
+}
+
+.high-contrast .cell-obstacle {
+  background: #FF0000 !important;
+  border: 3px solid #FFFFFF !important;
+}
+
+.high-contrast .cell-path {
+  background: #333333 !important;
+  border: 2px solid #FFFFFF !important;
+}
+
+/* High contrast for navigation */
+.high-contrast nav {
+  background: #000000 !important;
+  border: 2px solid #FFFFFF !important;
+}
+
+/* High contrast for cards and panels */
+.high-contrast .bg-white,
+.high-contrast .bg-white\/90 {
+  background: #1A1A1A !important;
+  border: 2px solid #FFFFFF !important;
+}
+
+/* High contrast for status messages */
+.high-contrast .status-success {
+  background: #003300 !important;
+  color: #00FF00 !important;
+  border: 2px solid #00FF00 !important;
+}
+
+.high-contrast .status-error {
+  background: #330000 !important;
+  color: #FF0000 !important;
+  border: 2px solid #FF0000 !important;
+}
+
+.high-contrast .status-info {
+  background: #000033 !important;
+  color: #00FFFF !important;
+  border: 2px solid #00FFFF !important;
+}
+
+/* High contrast text */
+.high-contrast .text-gray-600,
+.high-contrast .text-gray-500,
+.high-contrast .text-gray-700,
+.high-contrast .text-gray-800,
+.high-contrast .text-gray-900 {
+  color: #FFFFFF !important;
+}
+
+/* High contrast backgrounds */
+.high-contrast .bg-\[\#E8E4F0\] {
+  background: #000000 !important;
+}
+
+.high-contrast .bg-gray-100,
+.high-contrast .bg-gray-200 {
+  background: #333333 !important;
+}
+
+/* High contrast for colored elements - use distinct patterns/symbols */
+.high-contrast .bg-\[\#4ADE80\] {
+  background: #00FF00 !important;
+  color: #000000 !important;
+}
+
+.high-contrast .bg-\[\#A78BFA\] {
+  background: #FFFF00 !important;
+  color: #000000 !important;
+}
+
+.high-contrast .bg-\[\#F472B6\] {
+  background: #FF00FF !important;
+  color: #000000 !important;
+}
+
+.high-contrast .bg-\[\#FACC15\] {
+  background: #00FFFF !important;
+  color: #000000 !important;
+}
+
+/* Accessibility toggle button styles */
+.accessibility-toggle {
+  transition: all 0.2s ease;
+}
+
+.accessibility-toggle:hover {
+  transform: scale(1.05);
+}
+
+.accessibility-toggle.active {
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5);
+}
+
+/* TTS button animation */
+.tts-speaking {
+  animation: pulse-speak 1s infinite;
+}
+
+@keyframes pulse-speak {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }

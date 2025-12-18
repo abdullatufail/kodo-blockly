@@ -1,8 +1,8 @@
-# 🎮 CodeQuest - Learn Programming with Visual Blocks
+# Kodo - Learn Programming with Visual Blocks
 
 An interactive block-based programming game built with Next.js, Blockly, and GSAP. Learn programming concepts through fun puzzles!
 
-## ✨ Features
+##  Features
 
 - **4 Stages of Learning**: Simple → Loops → Conditions → Combined
 - **20 Levels**: Progressive difficulty from basic movement to complex algorithms
@@ -10,7 +10,7 @@ An interactive block-based programming game built with Next.js, Blockly, and GSA
 - **Animated Execution**: Watch your code come to life with GSAP animations
 - **Progress Tracking**: Sign in with Supabase to save your progress and earn stars
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -48,21 +48,21 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000)
 
-## 🎯 Game Stages
+## Game Stages
 
-### 🚀 Stage 1: Getting Started
+###  Stage 1: Getting Started
 Learn basic movement commands - move forward, turn left/right.
 
-### 🔄 Stage 2: Loop Master  
+###  Stage 2: Loop Master  
 Use repeat loops to efficiently solve puzzles with patterns.
 
-### 🧠 Stage 3: Smart Decisions
+###  Stage 3: Smart Decisions
 Learn conditionals - if path ahead, while loops, and repeat until goal.
 
-### 🏆 Stage 4: Master Challenge
+###  Stage 4: Master Challenge
 Combine all skills to solve complex programming challenges.
 
-## 🧱 Available Blocks
+##  Available Blocks
 
 | Block | Description | Stage Introduced |
 |-------|-------------|------------------|
@@ -84,7 +84,7 @@ Combine all skills to solve complex programming challenges.
 - **Auth & Database**: Supabase
 - **Language**: JavaScript/React
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 src/
@@ -110,7 +110,7 @@ src/
     └── supabase/         # Supabase client setup
 ```
 
-## 🎨 Level Configuration
+##  Level Configuration
 
 Each level includes:
 - `id`: Unique identifier
@@ -123,10 +123,10 @@ Each level includes:
 - `availableBlocks`: Which blocks can be used
 - `hints`: Help text for players
 
-## 📝 License
+##  License
 
 MIT
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions welcome! Feel free to submit issues and pull requests.

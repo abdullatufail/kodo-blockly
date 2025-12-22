@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 
-const CELL_SIZE_DESKTOP = 80; // Size in pixels for each grid cell on desktop
-const CELL_SIZE_MOBILE = 50; // Size in pixels for each grid cell on mobile
+const CELL_SIZE_DESKTOP = 55; // Size in pixels for each grid cell on desktop
+const CELL_SIZE_LARGE = 50; // Size in pixels for each grid cell on large screens
+const CELL_SIZE_MEDIUM = 45; // Size in pixels for each grid cell on medium screens
+const CELL_SIZE_MOBILE = 40; // Size in pixels for each grid cell on mobile
 
 export default function GameBoard({
   grid,
@@ -22,8 +24,16 @@ export default function GameBoard({
   useEffect(() => {
     const handleResize = () => {
       if (typeof window !== 'undefined') {
-        // Use smaller cells on mobile (< 768px)
-        setCellSize(window.innerWidth < 768 ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP);
+        // Use smaller cells across all screen sizes for better fit
+        if (window.innerWidth < 640) {
+          setCellSize(CELL_SIZE_MOBILE);
+        } else if (window.innerWidth < 1024) {
+          setCellSize(CELL_SIZE_MEDIUM);
+        } else if (window.innerWidth < 1280) {
+          setCellSize(CELL_SIZE_LARGE);
+        } else {
+          setCellSize(CELL_SIZE_DESKTOP);
+        }
       }
     };
 

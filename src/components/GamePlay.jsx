@@ -219,7 +219,7 @@ export default function GamePlay({ level }) {
               Moves: {moveCount}/{level.maxMoves}
             </span>
             <button
-              onClick={resetGame}
+              onClick={() => window.location.reload()}
               className="px-3 md:px-4 py-2 bg-[#A78BFA] text-white rounded-full hover:bg-[#8B5CF6] font-medium text-sm md:text-base"
             >
               Reset
@@ -269,9 +269,9 @@ export default function GamePlay({ level }) {
             onAnimationComplete={handleAnimationComplete}
           />
           <div className="mt-4 text-sm text-gray-500 flex gap-4">
-            <span className="flex items-center gap-1"><span className="w-4 h-4 bg-[#A78BFA] rounded"></span> Start</span>
-            <span className="flex items-center gap-1"><span className="w-4 h-4 bg-[#4ADE80] rounded"></span> Goal</span>
-            <span className="flex items-center gap-1"><span className="w-4 h-4 bg-[#F472B6] rounded"></span> Obstacle</span>
+            <span className="flex items-center gap-1"><img src="/goal.png" alt="Start" className="w-6 h-6 rounded border border-gray-300" /> Start</span>
+            <span className="flex items-center gap-1"><img src="/path.png" alt="Goal" className="w-6 h-6 rounded border border-gray-300" /> Goal</span>
+            <span className="flex items-center gap-1"><img src="/obstacle.png" alt="Obstacle" className="w-6 h-6 rounded border border-gray-300" /> Obstacle</span>
           </div>
 
           {/* Hints Section */}

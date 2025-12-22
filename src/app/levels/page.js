@@ -90,7 +90,7 @@ const LevelsPage = () => {
                             width={100}/>
             </Link>
             <h1 className="hidden sm:block text-xl font-bold text-gray-800">Choose Your <span className="font-accent">Challenge</span></h1>
-            <div className="flex items-center gap-4">
+            {/* <div className="flex items-center gap-4">
               {user && (
                 <div className="flex items-center gap-2 bg-[#FACC15]/20 px-4 py-2 rounded-full">
                   <span className="text-[#FACC15]">★</span>
@@ -98,7 +98,7 @@ const LevelsPage = () => {
                 </div>
               )}
               <UserMenu />
-            </div>
+            </div> */}
           </div>
         </div>
       </header>

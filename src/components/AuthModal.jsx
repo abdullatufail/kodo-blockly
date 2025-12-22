@@ -47,7 +47,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
   };
 
   return (
-    <div className="fixed inset-0  flex items-center top-1/2 -translate-y-1/2 justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="bg-[#4ADE80] p-6 text-white relative overflow-hidden">

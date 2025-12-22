@@ -237,7 +237,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 20,
-    maxBlocks: 10,
+    maxBlocks: 12,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT, blockTypes.REPEAT],
     hints: [
       'Follow the spiral inward',
@@ -351,7 +351,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 15,
-    maxBlocks: 5,
+    maxBlocks: 8,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.WHILE_PATH],
     hints: [
       'Use "while path ahead" to move forward',
@@ -372,7 +372,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 8,
-    maxBlocks: 4,
+    maxBlocks: 5,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.IF_PATH_AHEAD, blockTypes.REPEAT_UNTIL_GOAL],
     hints: [
       'Use "repeat until goal" as your main loop',
@@ -426,7 +426,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 25,
-    maxBlocks: 8,
+    maxBlocks: 10,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT,
       blockTypes.REPEAT, blockTypes.WHILE_PATH
@@ -479,14 +479,14 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 16,
-    maxBlocks: 4,
+    maxBlocks: 5,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT,
       blockTypes.REPEAT, blockTypes.WHILE_PATH
     ],
     hints: [
       'Use nested loops for maximum efficiency',
-      'Can you solve it with just 4 blocks?',
+      'Can you solve it with just 5 blocks?',
     ],
   },
   {
@@ -508,7 +508,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 35,
-    maxBlocks: 12,
+    maxBlocks: 15,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT,
       blockTypes.REPEAT, blockTypes.IF_PATH_AHEAD, blockTypes.IF_ELSE_PATH, 

@@ -7,18 +7,31 @@ import { useAccessibility } from "@/context/AccessibilityContext";
 import { useProgress } from "@/hooks/useProgress";
 import { levels, stages } from "@/data/levels";
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 
 export default function LandingPage() {
   const { user } = useAuth();
   const { totalStars, progress, loading: progressLoading } = useProgress();
   const { highContrast, toggleHighContrast, ttsEnabled, toggleTts } = useAccessibility();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const completedLevels = Object.keys(progress).filter(
     (key) => progress[key]?.completed
   ).length;
 
+  // Refs for GSAP animations
+  const shape1Ref = useRef(null);
+  const shape2Ref = useRef(null);
+  const shape3Ref = useRef(null);
+  const shape4Ref = useRef(null);
+  const containerRef = useRef(null);
+
+  // GSAP floating and morphing animations
+  
+
   return (
-    <div className="min-h-screen bg-white px-20">
+    <div className="min-h-screen bg-white px-4 md:px-10 lg:px-20">
       {/* Accessibility Controls - Fixed Position */}
       <div className="fixed bottom-4 right-4 z-100 flex gap-2">
         {/* High Contrast Toggle */}
@@ -53,32 +66,96 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className='flex w-full justify-between items-center mt-4 px-10 py-2 bg-white/90 border-3 border-black rounded-full relative z-90'>
+      <nav className='flex w-full justify-between items-center mt-4 px-4 md:px-10 py-2 bg-white/90 border-3 border-black rounded-full relative z-90'>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-gray-900">
             Kodo
           </h1>
         </div>
-        <div className='flex items-center gap-x-1'>
+        
+        {/* Desktop Navigation */}
+        <div className='hidden md:flex items-center gap-x-1'>
           <Link href="/levels" className="px-4 py-2 bg-gray-100 rounded-full font-medium text-gray-700 hover:bg-gray-200 transition-colors border-3 border-black text-sm">
             Academy
           </Link>
-          <a href="#features" className="px-4 py-2 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-3 border-black text-sm">
+          <Link href="/about" className="px-4 py-2 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-3 border-black text-sm">
             About Us
-          </a>
-          <a href="#stages" className="px-4 py-2 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-3 border-black text-sm">
+          </Link>
+          <Link href="/program" className="px-4 py-2 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-3 border-black text-sm">
             Program
-          </a>
+          </Link>
           <UserMenu />
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 rounded-lg bg-black hover:bg-gray-800 transition-colors"
+          aria-label="Toggle menu"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="white"
+            viewBox="0 0 24 24"
+          >
+            {mobileMenuOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
+          </svg>
+        </button>
       </nav>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed top-20 left-4 right-4 bg-white border-3 border-black rounded-3xl p-4 z-80 shadow-xl">
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/levels"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-4 py-3 bg-gray-100 rounded-full font-medium text-gray-700 hover:bg-gray-200 transition-colors border-2 border-black text-sm"
+            >
+              Academy
+            </Link>
+            <Link
+              href="/about"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-4 py-3 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-2 border-black text-sm"
+            >
+              About Us
+            </Link>
+            <Link
+              href="/program"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-4 py-3 rounded-full font-medium text-gray-600 hover:bg-gray-100 transition-colors border-2 border-black text-sm"
+            >
+              Program
+            </Link>
+            <div className="mt-2">
+              <UserMenu />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row items-center gap-12">
           {/* Left Content */}
           <div className="flex-1">
-            <div className="flex items-center gap-10 mb-4">
+            <div className="flex flex-col lg:flex-row items-center gap-10 mb-4">
               <Image src="/kodo-svg.svg"
               alt="kodo-logo"
               height={600}
@@ -133,16 +210,28 @@ export default function LandingPage() {
           </div>
 
           {/* Right Content - Decorative */}
-          <div className="flex-1 relative">
-            <div className="relative w-full h-96">
+          <div className="flex-1 relative" ref={containerRef}>
+            <div className="relative w-full h-96 hidden sm:block">
               
               
               
-              {/* Fun shapes */}
-              <div className="absolute bottom-90 right-15 w-22 h-22 bg-[#ef3f9d] blob-shape border-3 border-black"></div>
-              <div className="absolute bottom-60 right-32 w-42 h-42 bg-[#FACC15] rounded-full border-3 border-black"></div>
-              <div className="absolute bottom-40 right-20 w-26 h-26 bg-[#A78BFA] blob-shape border-3 border-black"></div>
-              <div className="absolute bottom-27 right-0 w-12 h-12 bg-[#4ADE80] blob-shape border-3 border-black"></div>
+              {/* Fun shapes with GSAP animations */}
+              <div 
+               
+                className="absolute bottom-90 right-15 w-22 h-22 bg-[#ef3f9d] blob-shape border-3 border-black "
+              ></div>
+              <div 
+                
+                className="absolute bottom-60 right-32 w-42 h-42 bg-[#FACC15] rounded-full border-3 border-black "
+              ></div>
+              <div 
+                
+                className="absolute bottom-40 right-20 w-26 h-26 bg-[#A78BFA] blob-shape border-3 border-black "
+              ></div>
+              <div 
+                
+                className="absolute bottom-27 right-0 w-12 h-12 bg-[#4ADE80] blob-shape border-3 border-black shadow-lg"
+              ></div>
             </div>
           </div>
         </div>

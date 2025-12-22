@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import GameBoard from '@/components/GameBoard';
 import BlocklyEditor from '@/components/BlocklyEditor';
+import LevelCompleteModal from '@/components/LevelCompleteModal';
 import Link from 'next/link';
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +18,8 @@ export default function GamePlay({ level }) {
   const [message, setMessage] = useState('');
   const [moveCount, setMoveCount] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completionData, setCompletionData] = useState({ stars: 0, isNewBest: false });
 
   const { user } = useAuth();
   const { saveProgress, getLevelProgress } = useProgress();
@@ -86,11 +89,11 @@ export default function GamePlay({ level }) {
         await saveProgress(level.id, starCount, moveCount);
       }
       
+      // Show the completion modal
+      const newBest = !levelProgress?.best_moves || moveCount < levelProgress.best_moves;
+      setCompletionData({ stars: starCount, isNewBest: newBest });
       setTimeout(() => {
-        const newBest = !levelProgress?.best_moves || moveCount < levelProgress.best_moves;
-        alert(
-          `Congratulations! You won!\n\nMoves used: ${moveCount}\nOptimal: ${level.maxMoves}\n${starDisplay}${newBest && user ? '\n\nNew Personal Best!' : ''}${!user ? '\n\nSign in to save your progress!' : ''}`
-        );
+        setShowCompleteModal(true);
       }, 500);
     } else {
       setMessage('Try again! The character did not reach the goal.');
@@ -310,6 +313,19 @@ export default function GamePlay({ level }) {
       <footer className="bg-white/80 p-3 text-center text-sm text-gray-600 shrink-0">
         <p>💡 Tip: Try to solve the puzzle in {level.maxMoves} moves or less for 3 stars!</p>
       </footer>
+
+      {/* Level Complete Modal */}
+      <LevelCompleteModal
+        isOpen={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        stars={completionData.stars}
+        moveCount={moveCount}
+        optimalMoves={level.maxMoves}
+        isNewBest={completionData.isNewBest}
+        isLoggedIn={!!user}
+        nextLevelId={nextLevel?.id}
+        currentLevelId={level.id}
+      />
     </div>
   );
 }

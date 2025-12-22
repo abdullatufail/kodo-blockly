@@ -44,7 +44,19 @@ export default function BlocklyEditor({ onCodeGenerated, availableBlocks, maxBlo
     // Store generator on window for access
     window.customGenerator = javascriptGenerator;
 
+    // Force resize after a short delay to ensure toolbox renders properly
+    setTimeout(() => {
+      Blockly.svgResize(workspace);
+    }, 100);
+
+    // Also resize on window resize
+    const handleResize = () => {
+      Blockly.svgResize(workspace);
+    };
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       workspace.dispose();
     };
   }, [availableBlocks, maxBlocks]);
@@ -75,7 +87,7 @@ export default function BlocklyEditor({ onCodeGenerated, availableBlocks, maxBlo
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full w-full" style={{ minHeight: '500px' }}>
       <div className="flex gap-2 p-2 bg-gray-100 border-b-3 border-black">
         <button
           onClick={generateCode}
@@ -90,7 +102,14 @@ export default function BlocklyEditor({ onCodeGenerated, availableBlocks, maxBlo
           X Clear
         </button>
       </div>
-      <div ref={blocklyDiv} className="flex-1" />
+      <div 
+        ref={blocklyDiv} 
+        style={{ 
+          height: 'calc(100% - 52px)', 
+          width: '100%',
+          position: 'relative'
+        }} 
+      />
     </div>
   );
 }

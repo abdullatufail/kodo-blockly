@@ -89,10 +89,41 @@ button:active, a:active, [role="button"]:active {
 
 .blocklyToolboxDiv {
   background-color: #e5e5e5 !important;
+  padding: 4px 0 !important;
 }
 
 .blocklyFlyout {
   fill: #f0f0f0 !important;
+}
+
+/* Ensure toolbox categories are visible and clickable */
+.blocklyToolboxCategory {
+  cursor: pointer !important;
+}
+
+.blocklyTreeRow {
+  padding: 6px 8px !important;
+  margin: 2px 4px !important;
+  border-radius: 4px !important;
+}
+
+.blocklyTreeRow:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Fix for flyout background */
+.blocklyFlyoutBackground {
+  fill: #f5f5f5 !important;
+}
+
+/* Make sure toolbox scrollbar works */
+.blocklyToolboxDiv::-webkit-scrollbar {
+  width: 8px;
+}
+
+.blocklyToolboxDiv::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
 }
 
 /* Make sure blockly scrollbars work */

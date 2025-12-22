@@ -44,7 +44,7 @@ const LevelsPage = () => {
   };
 
   return (
-    <div className="min-h-screen mx-20 bg-white">
+    <div className="min-h-screen mx-4 md:mx-10 lg:mx-20 bg-white">
       {/* Accessibility Controls - Fixed Position */}
       <div className="fixed bottom-4 right-4 z-100 flex gap-2">
         {/* High Contrast Toggle */}
@@ -89,7 +89,7 @@ const LevelsPage = () => {
                             height={100}
                             width={100}/>
             </Link>
-            <h1 className="text-xl font-bold text-gray-800">Choose Your <span className="font-accent">Challenge</span></h1>
+            <h1 className="hidden sm:block text-xl font-bold text-gray-800">Choose Your <span className="font-accent">Challenge</span></h1>
             <div className="flex items-center gap-4">
               {user && (
                 <div className="flex items-center gap-2 bg-[#FACC15]/20 px-4 py-2 rounded-full">

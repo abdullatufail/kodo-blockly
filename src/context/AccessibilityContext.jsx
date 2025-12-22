@@ -197,8 +197,12 @@ export function AccessibilityProvider({ children }) {
 
   const toggleTts = useCallback(() => {
     setTtsEnabled(prev => {
-      if (!prev) {
-        // Announce that TTS is now enabled
+      if (prev) {
+        // TTS is being turned OFF - cancel all speech immediately
+        window.speechSynthesis.cancel();
+        return false;
+      } else {
+        // TTS is being turned ON - announce it
         setTimeout(() => {
           const utterance = new SpeechSynthesisUtterance('Text to speech enabled. I will now read content aloud for you.');
           if (selectedVoice) utterance.voice = selectedVoice;
@@ -206,8 +210,8 @@ export function AccessibilityProvider({ children }) {
           utterance.pitch = speechPitch;
           window.speechSynthesis.speak(utterance);
         }, 100);
+        return true;
       }
-      return !prev;
     });
   }, [selectedVoice, speechRate, speechPitch]);
 

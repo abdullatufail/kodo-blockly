@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 
-const CELL_SIZE = 80; // Size in pixels for each grid cell
+const CELL_SIZE_DESKTOP = 80; // Size in pixels for each grid cell on desktop
+const CELL_SIZE_MOBILE = 50; // Size in pixels for each grid cell on mobile
 
 export default function GameBoard({
   grid,
@@ -15,6 +16,21 @@ export default function GameBoard({
   const characterRef = useRef(null);
   const timelineRef = useRef(null);
   const isAnimatingRef = useRef(false);
+  const [cellSize, setCellSize] = useState(CELL_SIZE_DESKTOP);
+
+  // Responsive cell size based on screen width
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        // Use smaller cells on mobile (< 768px)
+        setCellSize(window.innerWidth < 768 ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP);
+      }
+    };
+
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Helper functions - defined before useEffect
   const getRotation = (dir) => {
@@ -220,8 +236,8 @@ export default function GameBoard({
         if (isValidPosition(nextPos)) {
           currentPos = nextPos;
           timeline.to(characterRef.current, {
-            x: currentPos.x * CELL_SIZE,
-            y: currentPos.y * CELL_SIZE,
+            x: currentPos.x * cellSize,
+            y: currentPos.y * cellSize,
             duration: 0.5,
             ease: 'power2.inOut',
           });
@@ -255,7 +271,7 @@ export default function GameBoard({
     return () => {
       timeline.kill();
     };
-  }, [animationCommands, characterPos, direction, onAnimationComplete]);
+  }, [animationCommands, characterPos, direction, onAnimationComplete, cellSize]);
 
   const getTileColor = (tile) => {
     switch (tile) {
@@ -286,11 +302,11 @@ export default function GameBoard({
   };
 
   return (
-    <div className="relative">
+    <div className="relative overflow-auto max-w-full">
       <div
-        className="inline-grid gap-1 p-4 bg-gray-100 rounded-lg relative border-3 border-black"
+        className="inline-grid gap-0.5 md:gap-1 p-2 md:p-4 bg-gray-100 rounded-lg relative border-3 border-black"
         style={{
-          gridTemplateColumns: `repeat(${grid[0].length}, ${CELL_SIZE}px)`,
+          gridTemplateColumns: `repeat(${grid[0].length}, ${cellSize}px)`,
         }}
       >
         {/* Render grid tiles */}
@@ -298,10 +314,10 @@ export default function GameBoard({
           row.map((tile, x) => (
             <div
               key={`${x}-${y}`}
-              className={`${getTileColor(tile)} border border-gray-400 rounded flex items-center justify-center text-3xl font-bold`}
+              className={`${getTileColor(tile)} border border-gray-400 rounded flex items-center justify-center text-xl md:text-3xl font-bold`}
               style={{
-                width: `${CELL_SIZE}px`,
-                height: `${CELL_SIZE}px`,
+                width: `${cellSize}px`,
+                height: `${cellSize}px`,
               }}
             >
               {getTileEmoji(tile)}
@@ -314,10 +330,10 @@ export default function GameBoard({
           ref={characterRef}
           className="absolute pointer-events-none"
           style={{
-            width: `${CELL_SIZE - 10}px`,
-            height: `${CELL_SIZE - 10}px`,
-            left: `${CELL_SIZE * characterPos.x + 5}px`,
-            top: `${CELL_SIZE * characterPos.y + 5}px`,
+            width: `${cellSize - 10}px`,
+            height: `${cellSize - 10}px`,
+            left: `${cellSize * characterPos.x + 5}px`,
+            top: `${cellSize * characterPos.y + 5}px`,
             transform: `rotate(${getRotation(direction)}deg)`,
           }}
         >

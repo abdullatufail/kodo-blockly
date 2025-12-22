@@ -20,6 +20,14 @@ export default function GamePlay({ level }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionData, setCompletionData] = useState({ stars: 0, isNewBest: false });
+  // Initialize tutorial state based on localStorage (only for level 1)
+  const [showTutorial, setShowTutorial] = useState(() => {
+    if (typeof window !== 'undefined' && level.id === 1) {
+      const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+      return !hasSeenTutorial;
+    }
+    return false;
+  });
 
   const { user } = useAuth();
   const { saveProgress, getLevelProgress } = useProgress();
@@ -61,6 +69,7 @@ export default function GamePlay({ level }) {
     return () => {
       stopSpeaking();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
 
   const handleCodeGenerated = (commands) => {
@@ -115,7 +124,7 @@ export default function GamePlay({ level }) {
   return (
     <div className="flex flex-col min-h-screen bg-[#E8E4F0]">
       {/* Accessibility Controls - Fixed Position */}
-      <div className="fixed bottom-4 right-20 z-50 flex gap-2">
+      <div className="fixed bottom-4 right-4 md:right-20 z-50 flex gap-2">
         {/* High Contrast Toggle */}
         <button
           onClick={toggleHighContrast}
@@ -148,24 +157,24 @@ export default function GamePlay({ level }) {
       </div>
 
       {/* Header - with extra top padding to account for accessibility controls */}
-      <header className="bg-white/90 backdrop-blur-sm p-4 pt-16 sm:pt-4 border-b-3 border-black">
-        <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
+      <header className="bg-white/90 backdrop-blur-sm p-3 md:p-4 pt-16 sm:pt-4 border-b-3 border-black">
+        <div className="container mx-auto flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
             <Link
               href="/levels"
-              className="px-4 py-2 border-3 border-black bg-[#E8E4F0] text-gray-700 rounded-full hover:bg-gray-200 font-medium flex items-center gap-2"
+              className="px-3 md:px-4 py-2 border-3 border-black bg-[#E8E4F0] text-gray-700 rounded-full hover:bg-gray-200 font-medium flex items-center gap-2 text-sm md:text-base"
             >
               ← Levels
             </Link>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span 
-                  className="px-3 py-1 text-xs font-bold rounded-full text-gray-900"
+                  className="px-2 md:px-3 py-1 text-xs font-bold rounded-full text-gray-900"
                   style={{ backgroundColor: stageColor }}
                 >
                   {stage?.name}
                 </span>
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-base md:text-xl font-bold text-gray-900 truncate">
                   Level {level.id}: <span className="font-accent">{level.title}</span>
                 </h1>
                 {/* TTS Button for Instructions */}
@@ -180,10 +189,10 @@ export default function GamePlay({ level }) {
                   </button>
                 )}
               </div>
-              <p className="text-sm text-gray-600">{level.description}</p>
+              <p className="text-xs md:text-sm text-gray-600 line-clamp-2 md:line-clamp-none">{level.description}</p>
             </div>
           </div>
-          <div className="flex gap-2 items-center flex-wrap">
+          <div className="flex gap-2 items-center flex-wrap w-full sm:w-auto justify-start sm:justify-end">
             {levelProgress && (
               <div className="flex items-center gap-1 px-3 py-1 bg-[#FACC15]/20 rounded-full">
                 {[1, 2, 3].map((i) => (
@@ -194,7 +203,7 @@ export default function GamePlay({ level }) {
               </div>
             )}
             <span
-              className={`text-sm font-medium px-3 py-1 rounded-full ${
+              className={`text-xs md:text-sm font-medium px-2 md:px-3 py-1 rounded-full ${
                 level.difficulty === 'Easy'
                   ? 'bg-[#4ADE80]/20 text-[#166534]'
                   : level.difficulty === 'Medium'
@@ -206,19 +215,19 @@ export default function GamePlay({ level }) {
             >
               {level.difficulty}
             </span>
-            <span className="text-sm font-medium px-3 py-1 bg-[#A78BFA]/20 rounded-full text-[#5B21B6]">
+            <span className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-[#A78BFA]/20 rounded-full text-[#5B21B6]">
               Moves: {moveCount}/{level.maxMoves}
             </span>
             <button
               onClick={resetGame}
-              className="px-4 py-2 bg-[#A78BFA] text-white rounded-full hover:bg-[#8B5CF6] font-medium"
+              className="px-3 md:px-4 py-2 bg-[#A78BFA] text-white rounded-full hover:bg-[#8B5CF6] font-medium text-sm md:text-base"
             >
               Reset
             </button>
             {nextLevel && (
               <Link
                 href={`/level/${nextLevel.id}`}
-                className="px-4 py-2 bg-[#4ADE80] text-gray-900 rounded-full hover:bg-[#22C55E] font-medium"
+                className="px-3 md:px-4 py-2 bg-[#4ADE80] text-gray-900 rounded-full hover:bg-[#22C55E] font-medium text-sm md:text-base"
               >
                 Next →
               </Link>
@@ -243,11 +252,11 @@ export default function GamePlay({ level }) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-auto md:overflow-hidden">
         {/* Left Panel - Game Board */}
-        <div className="w-1/2 flex flex-col items-center justify-center p-8 bg-white ">
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 md:p-8 bg-white ">
           <div className="mb-4 text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Game Board</h2>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Game Board</h2>
             <p className="text-sm text-gray-600">
               Use blocks to move the character to the goal!   
             </p>
@@ -285,10 +294,10 @@ export default function GamePlay({ level }) {
           )}
         </div>
 
-        {/* Right Panel - Blockly Editor - Increased min-height for levels with many blocks */}
-        <div className="w-1/2 flex flex-col bg-[#E8E4F0] border-l-3 border-black min-h-[500px]">
-          <div className="p-4 bg-[#A78BFA]/20 border-b-3 border-black shrink-0">
-            <h2 className="text-3xl font-bold text-black mb-1">Block Editor!</h2>
+        {/* Right Panel - Blockly Editor - Fixed height for proper rendering */}
+        <div className="w-full md:w-1/2 flex flex-col bg-[#E8E4F0] border-t-3 md:border-t-0 md:border-l-3 border-black" style={{ minHeight: '500px' }}>
+          <div className="p-3 md:p-4 bg-[#A78BFA]/20 border-b-3 border-black shrink-0">
+            <h2 className="text-xl md:text-3xl font-bold text-black mb-1">Block Editor!</h2>
             <p className="text-sm text-gray-600">
               Drag blocks from the left menu to create your solution
             </p>
@@ -298,8 +307,8 @@ export default function GamePlay({ level }) {
               </p>
             )}
           </div>
-          {/* Blockly container with guaranteed minimum height and scroll */}
-          <div className="flex-1 overflow-auto min-h-[400px]">
+          {/* Blockly container with fixed height for proper rendering */}
+          <div style={{ height: '450px', width: '100%' }}>
             <BlocklyEditor 
               onCodeGenerated={handleCodeGenerated} 
               availableBlocks={level.availableBlocks}
@@ -326,6 +335,100 @@ export default function GamePlay({ level }) {
         nextLevelId={nextLevel?.id}
         currentLevelId={level.id}
       />
+
+      {/* Tutorial Video Modal for Level 1 */}
+      {showTutorial && (
+        <div className="fixed inset-0 bg-black/70 z-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-linear-to-r from-[#A78BFA] to-[#F472B6] p-4 border-b-4 border-black">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🎬</span>
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">Welcome to Kodo!</h2>
+                    <p className="text-white/90 text-sm">Watch this quick tutorial to get started</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTutorial(false);
+                    localStorage.setItem('hasSeenTutorial', 'true');
+                  }}
+                  className="w-10 h-10 bg-white rounded-full border-3 border-black flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  aria-label="Close tutorial"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Video Player */}
+            <div className="p-4 md:p-6">
+              <div className="relative bg-black rounded-2xl overflow-hidden border-3 border-black aspect-video">
+                <video
+                  src="/tutorial.mp4"
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                  playsInline
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+
+              {/* Tutorial Tips */}
+              <div className="mt-4 bg-[#FACC15]/20 rounded-xl p-4 border-2 border-[#FACC15]">
+                <h3 className="font-bold text-[#854D0E] mb-2 flex items-center gap-2">
+                  <span>💡</span> Quick Tips
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li>• Drag blocks from the left menu to the workspace</li>
+                  <li>• Connect blocks together to create a sequence</li>
+                  <li>• Click &quot;Run Code&quot; to see your character move</li>
+                  <li>• Try to reach the goal in as few moves as possible!</li>
+                </ul>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    setShowTutorial(false);
+                    localStorage.setItem('hasSeenTutorial', 'true');
+                  }}
+                  className="px-6 py-3 bg-[#4ADE80] text-black font-bold rounded-full border-3 border-black hover:bg-[#22C55E] transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5"
+                >
+                  🎮 Start Playing!
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('hasSeenTutorial');
+                    setShowTutorial(false);
+                  }}
+                  className="px-6 py-3 bg-white text-gray-700 font-medium rounded-full border-3 border-black hover:bg-gray-100 transition-colors"
+                >
+                  Show tutorial next time
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Button for Level 1 (if user closed the modal and wants to rewatch) */}
+      {level.id === 1 && !showTutorial && (
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="fixed bottom-4 left-4 z-50 px-4 py-2 bg-[#A78BFA] text-white font-bold rounded-full border-3 border-black hover:bg-[#8B5CF6] transition-colors shadow-lg flex items-center gap-2"
+          title="Watch tutorial video"
+        >
+          <span>🎬</span>
+          <span className="hidden sm:inline">Tutorial</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -167,7 +167,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 5,
-    maxBlocks: 2,
+    maxBlocks: 7,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.REPEAT],
     hints: [
       'Use the Repeat block instead of many Move Forward blocks',
@@ -190,7 +190,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 12,
-    maxBlocks: 5,
+    maxBlocks: 10,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.REPEAT],
     hints: [
       'Notice the repeating pattern: forward, right, forward, right',
@@ -213,7 +213,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 16,
-    maxBlocks: 6,
+    maxBlocks: 11,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.REPEAT],
     hints: [
       'Move 4 times, turn right, repeat this pattern',
@@ -237,7 +237,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 20,
-    maxBlocks: 12,
+    maxBlocks: 17,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT, blockTypes.REPEAT],
     hints: [
       'Follow the spiral inward',
@@ -262,7 +262,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 18,
-    maxBlocks: 6,
+    maxBlocks: 11,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.REPEAT],
     hints: [
       'Notice there are two identical squares to navigate',
@@ -351,7 +351,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 15,
-    maxBlocks: 8,
+    maxBlocks: 13,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.WHILE_PATH],
     hints: [
       'Use "while path ahead" to move forward',
@@ -372,7 +372,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 8,
-    maxBlocks: 5,
+    maxBlocks: 10,
     availableBlocks: [blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.IF_PATH_AHEAD, blockTypes.REPEAT_UNTIL_GOAL],
     hints: [
       'Use "repeat until goal" as your main loop',
@@ -426,7 +426,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 25,
-    maxBlocks: 10,
+    maxBlocks: 15,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT,
       blockTypes.REPEAT, blockTypes.WHILE_PATH
@@ -479,7 +479,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 16,
-    maxBlocks: 5,
+    maxBlocks: 10,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT,
       blockTypes.REPEAT, blockTypes.WHILE_PATH
@@ -508,7 +508,7 @@ export const levels = [
     startPosition: { x: 0, y: 0 },
     startDirection: 'EAST',
     maxMoves: 35,
-    maxBlocks: 15,
+    maxBlocks: 20,
     availableBlocks: [
       blockTypes.MOVE_FORWARD, blockTypes.TURN_RIGHT, blockTypes.TURN_LEFT,
       blockTypes.REPEAT, blockTypes.IF_PATH_AHEAD, blockTypes.IF_ELSE_PATH, 

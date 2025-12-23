@@ -53,6 +53,7 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
+        emailRedirectTo: 'https://kodo-blockly.vercel.app/',
         data: {
           username,
         },

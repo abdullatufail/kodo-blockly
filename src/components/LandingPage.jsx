@@ -155,7 +155,7 @@ export default function LandingPage() {
         <div className="flex flex-col lg:flex-row items-center gap-12">
           {/* Left Content */}
           <div className="flex-1">
-            <div className="flex flex-col lg:flex-row items-center gap-10 mb-4">
+            <div className="flex flex-col lg:flex-row items-center gap-10 mb-4 relative z-120">
               <Image src="/kodo-svg.svg"
               alt="kodo-logo"
               height={600}

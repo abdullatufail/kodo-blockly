@@ -21,6 +21,7 @@ import ArcSection from './ui/ArcSection';
 import StoryCard, { Circled } from './ui/StoryCard';
 import LineIcon from './ui/LineIcons';
 import SkillsRoad from './landing/SkillsRoad';
+import MeetTheCrew from './landing/MeetTheCrew';
 import { levels, stages, getLevelsByStage } from '@/data/levels';
 import { useProgress } from '@/hooks/useProgress';
 import { whenRevealed } from '@/lib/pageReveal';
@@ -541,6 +542,9 @@ export default function LandingPage() {
           })}
         </div>
       </section>
+
+      {/* ──────────────────────────── The crew ────────────────────────── */}
+      <MeetTheCrew className="pt-32" />
 
       {/* ─────────────────────────── How it works ─────────────────────── */}
       <ArcSection id="how" wrapperClassName="mt-36" className="scroll-mt-28 px-4 pb-24 pt-6 sm:px-6" aria-labelledby="how-title">

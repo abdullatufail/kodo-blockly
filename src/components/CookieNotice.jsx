@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import FunButton from './ui/FunButton';
 import { getConsent, OPEN_CONSENT_EVENT, setConsent } from '@/lib/storage';
 import { whenRevealed } from '@/lib/pageReveal';
+import { Sunny } from './brand/Crew';
 
 function Cookie({ className = '' }) {
   return (
@@ -43,6 +44,7 @@ export default function CookieNotice() {
     const ctx = gsap.context(() => {
       gsap.from(cardRef.current, { y: 160, rotate: -8, duration: 0.8, ease: 'back.out(1.6)', delay: 0.4 });
       gsap.to('.cookie-art', { rotate: 360, duration: 12, ease: 'none', repeat: -1 });
+      gsap.from('.cookie-sunny', { y: 40, scaleY: 0.4, duration: 0.6, delay: 0.9, ease: 'back.out(2.5)' });
     }, cardRef);
     return () => ctx.revert();
   }, [open]);
@@ -62,6 +64,7 @@ export default function CookieNotice() {
       aria-describedby="cookie-text"
       className="fixed bottom-4 left-4 right-4 z-[150] max-w-sm rounded-[28px] bg-ink p-5 text-paper sm:right-auto"
     >
+      <Sunny className="cookie-sunny absolute -top-11 right-6 h-16 w-16" mood="wink" shadow={false} title="" />
       <div className="flex items-start gap-4">
         <Cookie className="cookie-art h-14 w-14 shrink-0" />
         <div>

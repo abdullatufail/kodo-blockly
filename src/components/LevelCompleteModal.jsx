@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import Kodo from './brand/Kodo';
+import { Sunny } from './brand/Crew';
 import { Star } from './brand/Stickers';
 import FunButton from './ui/FunButton';
 import { ArrowRightIcon, CheckIcon, CloseIcon, MapIcon, ResetIcon } from './ui/Icons';
@@ -45,6 +46,7 @@ export default function LevelCompleteModal({ isOpen, onClose, onReplay, level, r
 
     const ctx = gsap.context(() => {
       gsap.fromTo(cardRef.current, { scale: 0.6, y: 60, rotate: -4, opacity: 0 }, { scale: 1, y: 0, rotate: 0, opacity: 1, duration: 0.6, ease: 'back.out(1.8)' });
+      gsap.from('.win-sunny', { x: -40, y: 30, scale: 0, duration: 0.6, delay: 0.35, ease: 'back.out(2.2)' });
       starsRef.current.forEach((el, i) => {
         if (!el) return;
         const earned = i < result.stars;
@@ -103,6 +105,7 @@ export default function LevelCompleteModal({ isOpen, onClose, onReplay, level, r
 
       <div ref={cardRef} className="card-sticker relative w-full max-w-md rounded-[34px] px-6 pb-6 pt-20 text-center sm:px-8">
         <Kodo className="absolute -top-16 left-1/2 h-32 w-32 -translate-x-1/2 animate-bob" mood="cheer" title="Kodo is cheering" />
+        <Sunny className="win-sunny absolute -top-8 left-[calc(50%+3.2rem)] h-16 w-16 rotate-12" mood="cheer" shadow={false} title="Sunny is cheering too" />
         <button
           type="button"
           onClick={onClose}

@@ -260,6 +260,25 @@ h1, h2, h3 {
   transform: scale(1.1, 0.45);
 }
 
+/* Wink: a cheeky little side-to-side wobble. */
+.kodo[data-mood='wink'] .kodo-squash {
+  animation: kodo-wink 0.9s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+/* A friend popping into the speech bubble. */
+.buddy-pop {
+  animation: buddy-pop 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes kodo-wink {
+  0%, 100% { transform: rotate(0) scale(1, 1); }
+  25% { transform: rotate(-8deg) scale(1.06, 0.94); }
+  60% { transform: rotate(6deg) scale(0.97, 1.04); }
+}
+@keyframes buddy-pop {
+  0% { transform: translateY(24px) scale(0.3, 0.6) rotate(-14deg); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: none; }
+}
+
 @keyframes kodo-breathe {
   0%, 100% { transform: scale(1, 1); }
   50% { transform: scale(1.035, 0.965); }

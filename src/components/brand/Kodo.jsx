@@ -42,7 +42,7 @@ export default function Kodo({
       {shadow && <ellipse className="kodo-shadow" cx="60" cy="112" rx="34" ry="5" fill="var(--color-ink)" opacity="0.12" />}
 
       <g className="kodo-squash">
-        <circle className="kodo-body" cx="60" cy="62" r="48" fill="var(--color-peach)" />
+        <ellipse className="kodo-body" cx="60" cy="63" rx="54" ry="45" fill="var(--color-peach)" />
 
         <g className="kodo-pupils">
           <g className="kodo-look" style={{ transform: `translate(${dx}px, ${dy}px)` }}>

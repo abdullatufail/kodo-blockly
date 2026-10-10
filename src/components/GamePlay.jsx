@@ -6,7 +6,8 @@ import GameBoard from '@/components/GameBoard';
 import BlocklyEditor from '@/components/BlocklyEditor';
 import LevelCompleteModal from '@/components/LevelCompleteModal';
 import HowToPlay from '@/components/game/HowToPlay';
-import Kodo from '@/components/brand/Kodo';
+import NewBlockIntro from '@/components/game/NewBlockIntro';
+import { Buddy, CREW } from '@/components/brand/Crew';
 import { Star } from '@/components/brand/Stickers';
 import { AccessibilityToggles } from '@/components/AccessibilityDock';
 import {
@@ -37,13 +38,32 @@ const BLOCK_NAMES = {
   repeat_until_goal: 'repeat until home',
 };
 
+// Who says what: Kodo tells the story, Zip helps when something goes wrong,
+// Bloo spots patterns and Sunny cheers.
 const FEEDBACK = {
-  empty: { mood: 'wow', text: 'Snap some blocks under the pink "when Go is pressed" block, then press Go!' },
-  running: { mood: 'happy', text: 'Here I go! Watch the glowing block to see which step I\'m on.' },
-  bump: { mood: 'oops', text: 'Bonk! Something is in the way. The glowing block is where I bumped. Try a turn before it?' },
-  lost: { mood: 'oops', text: 'I ran out of blocks before getting home. What should I do next?' },
-  tooLong: { mood: 'wow', text: 'Whoa, I got dizzy! That loop kept going and going. Does it ever stop?' },
+  empty: { who: 'zip', mood: 'wow', text: 'Psst! Snap some blocks under the pink "when Go is pressed" block, then press Go!' },
+  running: { who: 'kodo', mood: 'happy', text: 'Here I go! Watch the glowing block to see which step I\'m on.' },
+  bump: { who: 'zip', mood: 'wink', text: 'Bonk! Kodo bumped into something. The glowing block is where it happened. Maybe a turn before it?' },
+  lost: { who: 'zip', mood: 'wink', text: 'Kodo ran out of blocks before getting home. What should it do next?' },
+  tooLong: { who: 'zip', mood: 'wow', text: 'Whoa, Kodo got dizzy! That loop kept going and going. Does it ever stop?' },
 };
+
+const LOOP_BLOCKS = ['repeat_times', 'while_path', 'repeat_until_goal'];
+const sameStep = (a, b) => a && b && (a.type === 'move' || a.type === 'turn') && a.type === b.type && a.dir === b.dir;
+
+// Bloo's eye for patterns: three of the same step in a row, or a little run of
+// steps done twice back to back (move, turn, move, turn).
+function spotsRepeat(list) {
+  for (let i = 0; i < list.length; i++) {
+    if (sameStep(list[i], list[i + 1]) && sameStep(list[i], list[i + 2])) return true;
+    for (let k = 2; k <= 4; k++) {
+      let same = i + 2 * k <= list.length;
+      for (let j = 0; same && j < k; j++) same = sameStep(list[i + j], list[i + j + k]);
+      if (same) return true;
+    }
+  }
+  return list.some((b) => (b.body && spotsRepeat(b.body)) || (b.elseBody && spotsRepeat(b.elseBody)));
+}
 
 export default function GamePlay({ level }) {
   const boardRef = useRef(null);
@@ -51,7 +71,9 @@ export default function GamePlay({ level }) {
   const runIdRef = useRef(0);
 
   const [status, setStatus] = useState('idle'); // idle | running | done
-  const [coach, setCoach] = useState({ mood: 'happy', text: level.story });
+  const [coach, setCoach] = useState({ who: 'kodo', mood: 'happy', text: level.story });
+  const [showIntro, setShowIntro] = useState(false);
+  const blooSpokeRef = useRef(false);
   const [blocksUsed, setBlocksUsed] = useState(0);
   const [speedIndex, setSpeedIndex] = useState(1);
   const [hintIndex, setHintIndex] = useState(-1);
@@ -88,6 +110,22 @@ export default function GamePlay({ level }) {
     } catch {}
   }, [level.id]);
 
+  // A level with new blocks opens with Sunny showing them off (after the how-to on level 1).
+  useEffect(() => {
+    if (!level.newBlocks || showHowTo) return;
+    try {
+      if (level.id === 1 && !store.get('kodo:seen-howto')) return;
+      if (!store.get(`kodo:seen-intro:${level.id}`)) queueMicrotask(() => setShowIntro(true));
+    } catch {}
+  }, [level.id, level.newBlocks, showHowTo]);
+
+  const closeIntro = useCallback(() => {
+    setShowIntro(false);
+    try {
+      store.set(`kodo:seen-intro:${level.id}`, 'true');
+    } catch {}
+  }, [level.id]);
+
   useEffect(() => () => stopSpeaking(), [level.id, stopSpeaking]);
 
   const stop = () => {
@@ -100,13 +138,13 @@ export default function GamePlay({ level }) {
   const reset = () => {
     stop();
     setLastMissions(null);
-    say({ mood: 'happy', text: level.story });
+    say({ who: 'kodo', mood: 'happy', text: level.story });
   };
 
   const run = async () => {
     if (status === 'running') {
       stop();
-      say({ mood: 'happy', text: 'Stopped! Change your blocks and press Go again.' });
+      say({ who: 'kodo', mood: 'happy', text: 'Stopped! Change your blocks and press Go again.' });
       return;
     }
 
@@ -142,10 +180,16 @@ export default function GamePlay({ level }) {
       const missing = [];
       if (!score.missions.berries) missing.push(`grab every berry`);
       if (!score.missions.blocks) missing.push(`use ${level.parBlocks} blocks or fewer`);
-      say({
-        mood: 'cheer',
-        text: missing.length ? `Home! For more stars, try to ${missing.join(' and ')}.` : 'Home sweet home! A perfect solution!',
-      });
+      const loopy = !score.missions.blocks && level.availableBlocks.some((b) => LOOP_BLOCKS.includes(b)) && spotsRepeat(program);
+      say(
+        loopy
+          ? { who: 'bloo', mood: 'wink', text: 'Home! I spotted some steps that repeat. A loop could squish them into fewer blocks for more stars.' }
+          : {
+              who: 'sunny',
+              mood: 'cheer',
+              text: missing.length ? `Kodo is home, woohoo! For more stars, try to ${missing.join(' and ')}.` : 'Home sweet home! A perfect solution!',
+            }
+      );
       const isNewBest = !saved || score.stars > (saved.stars || 0);
       saveProgress(level.id, score.stars, result.steps);
       setTimeout(() => {
@@ -162,7 +206,17 @@ export default function GamePlay({ level }) {
   const showHint = () => {
     const next = (hintIndex + 1) % level.hints.length;
     setHintIndex(next);
-    say({ mood: 'wow', text: `Hint ${next + 1} of ${level.hints.length}: ${level.hints[next]}` });
+    say({ who: 'zip', mood: 'wink', text: `Hint ${next + 1} of ${level.hints.length}: ${level.hints[next]}` });
+  };
+
+  // Bloo pipes up (once a level) when the code has steps a loop could replace.
+  const onBlocksChange = (count) => {
+    setBlocksUsed(count);
+    if (blooSpokeRef.current || status === 'running' || !level.availableBlocks.some((b) => LOOP_BLOCKS.includes(b))) return;
+    const program = editorRef.current?.getProgram() || [];
+    if (!spotsRepeat(program)) return;
+    blooSpokeRef.current = true;
+    say({ who: 'bloo', mood: 'happy', text: 'Ooh, I see the same steps over and over! A loop block could do them all at once.' });
   };
 
   const changeSpeed = () => {
@@ -248,8 +302,13 @@ export default function GamePlay({ level }) {
         {/* ── Board side ────────────────────────────────── */}
         <section className="card-sticker flex min-h-0 flex-col gap-3 rounded-[28px] p-3 sm:p-4" aria-label="Puzzle board">
           <div className="flex items-start gap-3" aria-live="polite">
-            <Kodo className="h-16 w-16 shrink-0 animate-bob" mood={coach.mood} look="EAST" title="" aria-hidden="true" />
-            <p className="relative flex-1 rounded-2xl bg-cream px-4 py-2.5 font-semibold leading-snug before:absolute before:-left-[11px] before:top-5 before:h-4 before:w-4 before:rotate-45 before:border-b-2 before:border-l-2 before: before:bg-cream">
+            <span key={coach.who} className="buddy-pop shrink-0">
+              <Buddy who={coach.who} className="h-16 w-16 animate-bob" mood={coach.mood} look={coach.who === 'kodo' ? 'EAST' : 'center'} title="" aria-hidden="true" />
+            </span>
+            <p className="relative flex-1 rounded-2xl bg-cream px-4 py-2.5 font-semibold leading-snug before:absolute before:-left-[7px] before:top-6 before:h-4 before:w-4 before:rotate-45 before:rounded-[3px] before:bg-cream">
+              <span className="block font-display text-sm leading-tight" style={{ color: `color-mix(in oklab, ${CREW[coach.who].color} 45%, var(--color-ink))` }}>
+                {CREW[coach.who].name}
+              </span>
               {coach.text}
             </p>
           </div>
@@ -323,12 +382,15 @@ export default function GamePlay({ level }) {
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <h2 className="shrink-0 text-xl font-bold">Your code</h2>
               {level.newBlocks && (
-                <span
-                  className="truncate rounded-lg bg-berry px-2 py-0.5 font-display text-xs font-semibold text-onfill"
-                  title={`New: ${level.newBlocks.map((b) => BLOCK_NAMES[b]).join(' & ')}`}
+                <button
+                  type="button"
+                  onClick={() => setShowIntro(true)}
+                  className="btn-chunky flex min-w-0 items-center gap-1 rounded-lg bg-berry py-0.5 pl-1 pr-2 font-display text-xs font-semibold text-onfill"
+                  title={`See what the new block${level.newBlocks.length > 1 ? 's do' : ' does'}`}
                 >
-                  New: {level.newBlocks.map((b) => BLOCK_NAMES[b]).join(' & ')}
-                </span>
+                  <Buddy who="sunny" mood="cheer" shadow={false} title="" className="h-5 w-5 shrink-0" />
+                  <span className="truncate">New: {level.newBlocks.map((b) => BLOCK_NAMES[b]).join(' & ')}</span>
+                </button>
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -368,7 +430,7 @@ export default function GamePlay({ level }) {
               levelId={level.id}
               availableBlocks={level.availableBlocks}
               maxBlocks={level.maxBlocks}
-              onChange={setBlocksUsed}
+              onChange={onBlocksChange}
             />
             {status === 'running' && (
               <div className="absolute inset-0 z-10 cursor-not-allowed" title="Press Stop to change your code">
@@ -395,6 +457,7 @@ export default function GamePlay({ level }) {
       />
 
       {showHowTo && <HowToPlay onClose={closeHowTo} />}
+      {showIntro && !showHowTo && <NewBlockIntro blocks={level.newBlocks} onClose={closeIntro} />}
 
     </div>
   );

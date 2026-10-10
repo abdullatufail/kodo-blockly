@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import Kodo from '../brand/Kodo';
+import { Buddy, CREW } from '../brand/Crew';
 import { BlockPiece, Cottage } from '../brand/Stickers';
 import FunButton from '../ui/FunButton';
 import { PlayIcon } from '../ui/Icons';
@@ -72,6 +73,20 @@ export default function HowToPlay({ onClose }) {
             </li>
           ))}
         </ol>
+        <ul className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Kodo's friends">
+          {[
+            ['sunny', 'cheers when you get Kodo home and shows you new blocks.'],
+            ['bloo', 'spots steps that repeat and suggests a loop.'],
+            ['zip', 'pops up with a hint when something goes wrong.'],
+          ].map(([id, text]) => (
+            <li key={id} data-step className="flex items-center gap-3 rounded-3xl p-3" style={{ backgroundColor: CREW[id].soft }}>
+              <Buddy who={id} shadow={false} title="" className="h-12 w-12 shrink-0" />
+              <p className="text-sm font-semibold leading-snug">
+                <span className="font-display text-base">{CREW[id].name}</span> {text}
+              </p>
+            </li>
+          ))}
+        </ul>
         <div className="mt-6 flex justify-center">
           <FunButton size="lg" onClick={onClose} icon={<PlayIcon className="h-6 w-6" />}>
             Let&apos;s play!

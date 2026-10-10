@@ -320,7 +320,7 @@ export default function ProgramPage() {
       </PageHero>
 
       <div className="sticky top-20 z-40 mx-auto mt-10 flex max-w-6xl justify-center px-4">
-        <div role="tablist" aria-label="Guide sections" className="flex flex-wrap justify-center gap-2 rounded-full bg-paper p-2">
+        <div role="tablist" aria-label="Guide sections" className="no-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-full bg-paper p-1.5 sm:gap-2 sm:p-2">
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
@@ -329,8 +329,11 @@ export default function ProgramPage() {
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setTab(t.id)}
-                className={`btn-chunky group flex items-center gap-2 rounded-full px-4 py-2.5 font-display text-lg ${active ? 'text-onfill' : 'bg-transparent text-ink-soft hover:bg-cream'}`}
+                onClick={(e) => {
+                  setTab(t.id);
+                  e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+                }}
+                className={`btn-chunky group flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-display text-base sm:gap-2 sm:px-4 sm:py-2.5 sm:text-lg ${active ? 'text-onfill' : 'bg-transparent text-ink-soft hover:bg-cream'}`}
                 style={active ? { backgroundColor: t.color } : undefined}
               >
                 <LineIcon name={t.icon} className="h-5 w-5" />

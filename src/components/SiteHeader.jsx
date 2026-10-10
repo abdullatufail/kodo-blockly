@@ -23,7 +23,7 @@ function NavLink({ href, label, active, onClick }) {
     <Link
       href={href}
       onClick={onClick}
-      className={`group relative rounded-full px-4 py-2 font-display text-[1.02rem] font-semibold transition-colors ${
+      className={`group relative rounded-full px-4 py-2 font-sans text-[1.05rem] font-bold transition-colors ${
         active ? 'bg-ink text-paper' : 'text-ink hover:bg-ink/[0.06]'
       }`}
     >
@@ -57,7 +57,7 @@ export default function SiteHeader() {
           scrolled || open ? 'bg-paper' : 'bg-transparent'
         }`}
       >
-        <Link href="/" aria-label="Kodo home">
+        <Link href="/" aria-label="Kodo home" className="flex items-center">
           <Logo />
         </Link>
 
@@ -79,7 +79,7 @@ export default function SiteHeader() {
             </Link>
           )}
           <UserMenu className="hidden md:flex" />
-          <FunButton href="/levels" color="ink" size="sm" icon={<PlayIcon className="h-4 w-4" />} className="hidden !rounded-full sm:inline-flex">
+          <FunButton href="/levels" color="ink" size="sm" icon={<PlayIcon className="h-4 w-4" />} className="hidden !rounded-full !font-sans !text-base !font-bold sm:inline-flex">
             Play now
           </FunButton>
           <button

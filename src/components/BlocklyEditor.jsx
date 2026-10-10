@@ -103,7 +103,7 @@ function defineBlocks() {
 let theme = null;
 function getTheme() {
   if (theme) return theme;
-  const family = getComputedStyle(document.body).getPropertyValue('--font-fredoka').trim() || 'system-ui, sans-serif';
+  const family = getComputedStyle(document.body).getPropertyValue('--font-figtree').trim() || 'system-ui, sans-serif';
   theme = Blockly.Theme.defineTheme('kodo', {
     base: Blockly.Themes.Classic,
     blockStyles: STYLES,
@@ -118,7 +118,7 @@ function getTheme() {
       cursorColour: INK,
       selectedGlowColour: '#ffd43b',
     },
-    fontStyle: { family, weight: '600', size: 14 },
+    fontStyle: { family, weight: '700', size: 15 },
     startHats: false,
   });
   return theme;

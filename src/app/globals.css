@@ -187,6 +187,13 @@ h1, h2, h3 {
   animation: letter-hop 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--i) * 35ms) both;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .marquee-track {
   animation: marquee var(--marquee-speed, 28s) linear infinite;
 }
@@ -343,8 +350,8 @@ h1, h2, h3 {
 .blocklyText,
 .blocklyFlyoutLabelText,
 .blocklyDropdownText {
-  font-family: var(--font-display) !important;
-  font-weight: 600 !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
 }
 /* Ink text on the pastel blocks reads far better than zelos' default white. */
 .injectionDiv .blocklyText,

@@ -12,7 +12,7 @@ export default function Logo({ size = 'md', className = '', color = 'var(--color
         title=""
         aria-hidden="true"
       />
-      <span className={`headline leading-none ${big ? 'text-6xl' : 'text-[2.1rem]'}`} style={{ color }} aria-label="Kodo">
+      <span className={`headline translate-y-[0.05em] leading-none ${big ? 'text-6xl' : 'text-[2.1rem]'}`} style={{ color }} aria-label="Kodo">
         {LETTERS.map((ch, i) => (
           <span
             key={i}

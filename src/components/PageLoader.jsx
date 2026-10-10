@@ -23,11 +23,16 @@ export default function PageLoader() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.documentElement.style.overflow = 'hidden';
 
+    let finished = false;
     const finish = () => {
+      if (finished) return;
+      finished = true;
       document.documentElement.style.overflow = '';
       markRevealed();
       setDone(true);
     };
+    // Animations pause in background tabs; never let the curtain get stuck.
+    const fallback = setTimeout(finish, 9000);
 
     // Bounce: squash on the ground, stretch on the way up and down.
     const bounce = gsap.timeline({ repeat: -1, defaults: { transformOrigin: '50% 100%' } });
@@ -79,6 +84,7 @@ export default function PageLoader() {
 
     return () => {
       cancelled = true;
+      clearTimeout(fallback);
       bounce.kill();
       pulse?.kill();
       exit?.kill();

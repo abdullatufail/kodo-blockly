@@ -1,3 +1,4 @@
+import { store } from '@/lib/storage';
 // Tiny synthesized sound effects (Web Audio), so there are no audio files to load.
 // Everything is soft and short: this is a game for kids, not an arcade.
 
@@ -6,7 +7,7 @@ let muted = false;
 
 if (typeof window !== 'undefined') {
   try {
-    muted = localStorage.getItem('kodo:muted') === 'true';
+    muted = store.get('kodo:muted') === 'true';
   } catch {
     // Storage can be blocked (private mode); sounds just stay on.
   }
@@ -15,7 +16,7 @@ if (typeof window !== 'undefined') {
 export function setMuted(value) {
   muted = value;
   try {
-    localStorage.setItem('kodo:muted', String(value));
+    store.set('kodo:muted', String(value));
   } catch {}
 }
 

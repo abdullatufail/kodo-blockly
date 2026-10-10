@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { store } from '@/lib/storage';
 
 // Progress always lives on this device, so kids can play without an account.
 // When someone is signed in it is also saved to Supabase, and anything earned
@@ -10,7 +11,7 @@ const LOCAL_KEY = 'kodo:progress';
 
 function readLocal() {
   try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {};
+    return JSON.parse(store.get(LOCAL_KEY)) || {};
   } catch {
     return {};
   }
@@ -18,7 +19,7 @@ function readLocal() {
 
 function writeLocal(map) {
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
+    store.set(LOCAL_KEY, JSON.stringify(map));
   } catch {}
 }
 

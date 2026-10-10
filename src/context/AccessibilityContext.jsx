@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { isMuted, setMuted } from '@/lib/sfx';
+import { store } from '@/lib/storage';
 
 const AccessibilityContext = createContext({});
 
@@ -77,10 +78,10 @@ export function AccessibilityProvider({ children }) {
   // Using a callback pattern to batch state updates
   useEffect(() => {
     // Batch all state updates together
-    const savedHighContrast = localStorage.getItem('highContrast');
-    const savedTts = localStorage.getItem('ttsEnabled');
-    const savedRate = localStorage.getItem('speechRate');
-    const savedPitch = localStorage.getItem('speechPitch');
+    const savedHighContrast = store.get('highContrast');
+    const savedTts = store.get('ttsEnabled');
+    const savedRate = store.get('speechRate');
+    const savedPitch = store.get('speechPitch');
     
     // Use React 18's automatic batching
     const updates = () => {
@@ -113,15 +114,15 @@ export function AccessibilityProvider({ children }) {
     } else {
       document.documentElement.classList.remove('high-contrast');
     }
-    localStorage.setItem('highContrast', JSON.stringify(highContrast));
+    store.set('highContrast', JSON.stringify(highContrast));
   }, [highContrast, isHydrated]);
 
   // Save TTS preference
   useEffect(() => {
     if (!isHydrated) return;
-    localStorage.setItem('ttsEnabled', JSON.stringify(ttsEnabled));
-    localStorage.setItem('speechRate', speechRate.toString());
-    localStorage.setItem('speechPitch', speechPitch.toString());
+    store.set('ttsEnabled', JSON.stringify(ttsEnabled));
+    store.set('speechRate', speechRate.toString());
+    store.set('speechPitch', speechPitch.toString());
   }, [ttsEnabled, speechRate, speechPitch, isHydrated]);
 
   // Enhanced text-to-speech function with more human-like delivery

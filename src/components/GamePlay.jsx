@@ -18,6 +18,7 @@ import { useAccessibility } from '@/context/AccessibilityContext';
 import { getNextLevelInStage, getStageById, getLevelsByStage } from '@/data/levels';
 import { countBlocks, runProgram, scoreRun } from '@/lib/game/engine';
 import { sfx } from '@/lib/sfx';
+import { store } from '@/lib/storage';
 
 const SPEEDS = [
   { id: 'slow', label: 'Slow', value: 0.6, Icon: SnailIcon },
@@ -83,7 +84,7 @@ export default function GamePlay({ level }) {
   useEffect(() => {
     if (level.id !== 1) return;
     try {
-      if (!localStorage.getItem('kodo:seen-howto')) queueMicrotask(() => setShowHowTo(true));
+      if (!store.get('kodo:seen-howto')) queueMicrotask(() => setShowHowTo(true));
     } catch {}
   }, [level.id]);
 
@@ -173,7 +174,7 @@ export default function GamePlay({ level }) {
   const closeHowTo = useCallback(() => {
     setShowHowTo(false);
     try {
-      localStorage.setItem('kodo:seen-howto', 'true');
+      store.set('kodo:seen-howto', 'true');
     } catch {}
   }, []);
 

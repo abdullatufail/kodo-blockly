@@ -10,6 +10,7 @@ import FunButton from './ui/FunButton';
 import WaveText from './ui/WaveText';
 import { CloseIcon, MenuIcon, PlayIcon } from './ui/Icons';
 import { useProgress } from '@/hooks/useProgress';
+import { AUTH_ENABLED } from '@/lib/features';
 
 const LINKS = [
   { href: '/levels', label: 'Levels' },
@@ -98,9 +99,11 @@ export default function SiteHeader() {
           {LINKS.map((l) => (
             <NavLink key={l.href} {...l} active={pathname === l.href} onClick={() => setOpen(false)} />
           ))}
-          <div className="mt-2 border-t-2 border-dashed border-line pt-3">
-            <UserMenu />
-          </div>
+          {AUTH_ENABLED && (
+            <div className="mt-2 border-t-2 border-dashed border-line pt-3">
+              <UserMenu />
+            </div>
+          )}
         </div>
       )}
     </header>

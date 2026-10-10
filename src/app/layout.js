@@ -5,6 +5,7 @@ import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import CursorEffects from "@/components/CursorEffects";
 import AccessibilityDock from "@/components/AccessibilityDock";
 import PageLoader from "@/components/PageLoader";
+import CookieNotice from "@/components/CookieNotice";
 
 // Sign-painter headlines and a friendly body face.
 const ranchers = Ranchers({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }) {
             <CursorEffects />
             {children}
             <AccessibilityDock />
+            <CookieNotice />
           </AuthProvider>
         </AccessibilityProvider>
       </body>

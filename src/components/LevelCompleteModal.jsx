@@ -8,6 +8,8 @@ import { Star } from './brand/Stickers';
 import FunButton from './ui/FunButton';
 import { ArrowRightIcon, CheckIcon, CloseIcon, MapIcon, ResetIcon } from './ui/Icons';
 import { sfx } from '@/lib/sfx';
+import { AUTH_ENABLED } from '@/lib/features';
+import { getConsent } from '@/lib/storage';
 
 const COLORS = ['--color-leaf', '--color-sky', '--color-sun', '--color-berry', '--color-grape', '--color-peach'];
 const CHEERS = ['Hooray!', 'You did it!', 'Home sweet home!', 'Brilliant!', 'Super coder!'];
@@ -138,7 +140,11 @@ export default function LevelCompleteModal({ isOpen, onClose, onReplay, level, r
           </p>
         )}
         {!isLoggedIn && (
-          <p className="mt-3 text-sm font-semibold text-ink-soft">Your stars are saved on this device. Sign in to keep them everywhere.</p>
+          <p className="mt-3 text-sm font-semibold text-ink-soft">
+            {getConsent() === 'declined'
+              ? 'Saving is turned off, so these stars will be gone when you close the tab.'
+              : `Your stars are saved on this device.${AUTH_ENABLED ? ' Sign in to keep them everywhere.' : ''}`}
+          </p>
         )}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">

@@ -4,8 +4,13 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from './AuthModal';
 import { UserIcon } from './ui/Icons';
+import { AUTH_ENABLED } from '@/lib/features';
 
-export default function UserMenu({ className = '' }) {
+export default function UserMenu(props) {
+  return AUTH_ENABLED ? <AccountMenu {...props} /> : null;
+}
+
+function AccountMenu({ className = '' }) {
   const { user, loading, signOut } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);

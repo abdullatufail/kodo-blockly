@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Blob from './brand/Blobs';
 import Kodo from './brand/Kodo';
 import WaveText from './ui/WaveText';
+import CookieSettingsButton from './CookieSettingsButton';
 
 const LINKS = [
   { href: '/levels', label: 'Levels' },
@@ -47,9 +48,10 @@ export default function SiteFooter({ flush = false }) {
           <Kodo className="mb-2 h-20 w-20 shrink-0 animate-bob sm:h-32 sm:w-32" mood="cheer" shadow={false} title="" aria-hidden="true" />
         </div>
 
-        <p className="relative mx-auto mt-6 max-w-6xl text-sm font-semibold text-paper/60">
-          © {new Date().getFullYear()} Kodo · Made for little coders
-        </p>
+        <div className="relative mx-auto mt-6 flex max-w-6xl flex-wrap items-center justify-between gap-3 text-sm font-semibold text-paper/60">
+          <p>© {new Date().getFullYear()} Kodo · Made for little coders</p>
+          <CookieSettingsButton />
+        </div>
       </div>
     </footer>
   );

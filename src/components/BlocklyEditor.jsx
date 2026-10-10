@@ -3,6 +3,7 @@
 import { useEffect, useImperativeHandle, useRef } from 'react';
 import * as Blockly from 'blockly';
 import { sfx } from '@/lib/sfx';
+import { store } from '@/lib/storage';
 
 const INK = '#0f3d26';
 
@@ -207,7 +208,7 @@ export default function BlocklyEditor({ levelId, availableBlocks, maxBlocks, onC
 
     // Restore this level's code, or start fresh with just the Go block.
     try {
-      const saved = localStorage.getItem(storageKey(levelId));
+      const saved = store.get(storageKey(levelId));
       if (saved) Blockly.serialization.workspaces.load(JSON.parse(saved), workspace);
     } catch {
       workspace.clear();
@@ -228,7 +229,7 @@ export default function BlocklyEditor({ levelId, availableBlocks, maxBlocks, onC
       if (e.isUiEvent) return;
       if (e.type === Blockly.Events.BLOCK_MOVE && e.reason?.includes('connect')) sfx.snap();
       try {
-        localStorage.setItem(storageKey(levelId), JSON.stringify(Blockly.serialization.workspaces.save(workspace)));
+        store.set(storageKey(levelId), JSON.stringify(Blockly.serialization.workspaces.save(workspace)));
       } catch {}
       report();
     });

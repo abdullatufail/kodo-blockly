@@ -1,75 +1,47 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { sfx } from '@/lib/sfx';
 
-// Light "tuk" click sound as base64 (very short, soft click)
-const CLICK_SOUND_BASE64 = 'data:audio/wav;base64,UklGRl4AAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAATElTVBoAAABJTkZPSVNGVA4AAABMYXZmNTguNzYuMTAwAGRhdGEYAAAAgH+AfoCAgH+AgICAfoCAgH+AgICA';
+const COLORS = ['--color-leaf', '--color-sky', '--color-sun', '--color-berry', '--color-grape', '--color-peach'];
 
-const CONFETTI_COLORS = ['#4ADE80', '#A78BFA', '#F472B6', '#FACC15', '#38BDF8', '#FF6B6B'];
-
+// A tiny confetti pop (and a soft "tap") whenever something clickable is pressed.
 export default function CursorEffects() {
-  const playClickSound = useCallback(() => {
-    try {
-      const audio = new Audio(CLICK_SOUND_BASE64);
-      audio.volume = 0.15; // Very soft volume
-      audio.playbackRate = 1.5; // Slightly faster for a snappier "tuk"
-      audio.play().catch(() => {}); // Silently fail if blocked
-    } catch (e) {
-      // Audio not supported
-    }
-  }, []);
-
-  const createConfetti = useCallback((x, y) => {
-    const particles = [];
-    const particleCount = 8;
-    
-    for (let i = 0; i < particleCount; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'click-particle';
-      
-      // Random direction and distance
-      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
-      const distance = 30 + Math.random() * 40;
-      const tx = Math.cos(angle) * distance;
-      const ty = Math.sin(angle) * distance;
-      
-      // Random size and color
-      const size = 4 + Math.random() * 6;
-      const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-      
-      particle.style.cssText = `
-        left: ${x}px;
-        top: ${y}px;
-        width: ${size}px;
-        height: ${size}px;
-        background: ${color};
-        --tx: ${tx}px;
-        --ty: ${ty}px;
-      `;
-      
-      document.body.appendChild(particle);
-      particles.push(particle);
-    }
-    
-    // Clean up particles after animation
-    setTimeout(() => {
-      particles.forEach(p => p.remove());
-    }, 600);
-  }, []);
-
   useEffect(() => {
-    const handleClick = (e) => {
-      playClickSound();
-      createConfetti(e.clientX, e.clientY);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const handleDown = (e) => {
+      const target = e.target instanceof Element ? e.target.closest('button, a, [role="button"]') : null;
+      if (!target || target.closest('[data-no-burst]')) return;
+
+      sfx.tap();
+      if (reduceMotion.matches) return;
+
+      const count = 9;
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('span');
+        p.className = 'click-particle';
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+        const distance = 26 + Math.random() * 30;
+        const size = 6 + Math.random() * 6;
+        const isStar = i % 3 === 0;
+        p.style.cssText = `
+          left:${e.clientX - size / 2}px; top:${e.clientY - size / 2}px;
+          width:${size}px; height:${size}px;
+          background: var(${COLORS[i % COLORS.length]});
+          border: 2px solid var(--color-ink);
+          border-radius: ${isStar ? '3px' : '50%'};
+          --tx:${Math.cos(angle) * distance}px; --ty:${Math.sin(angle) * distance}px;
+          --rot:${(Math.random() - 0.5) * 360}deg;
+        `;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 700);
+      }
     };
 
-    // Add click listener to document
-    document.addEventListener('mousedown', handleClick);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-    };
-  }, [playClickSound, createConfetti]);
+    document.addEventListener('pointerdown', handleDown);
+    return () => document.removeEventListener('pointerdown', handleDown);
+  }, []);
 
-  return null; // This component doesn't render anything visible
+  return null;
 }

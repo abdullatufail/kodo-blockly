@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { isMuted, setMuted } from '@/lib/sfx';
 
 const AccessibilityContext = createContext({});
 
@@ -26,6 +27,7 @@ const PREFERRED_VOICE_NAMES = [
 export function AccessibilityProvider({ children }) {
   const [highContrast, setHighContrast] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
   const [availableVoices, setAvailableVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
@@ -94,6 +96,7 @@ export function AccessibilityProvider({ children }) {
       if (savedPitch) {
         setSpeechPitch(parseFloat(savedPitch));
       }
+      setSoundEnabled(!isMuted());
       setIsHydrated(true);
     };
     
@@ -196,24 +199,29 @@ export function AccessibilityProvider({ children }) {
   }, []);
 
   const toggleTts = useCallback(() => {
-    setTtsEnabled(prev => {
-      if (prev) {
-        // TTS is being turned OFF - cancel all speech immediately
-        window.speechSynthesis.cancel();
-        return false;
-      } else {
-        // TTS is being turned ON - announce it
-        setTimeout(() => {
-          const utterance = new SpeechSynthesisUtterance('Text to speech enabled. I will now read content aloud for you.');
-          if (selectedVoice) utterance.voice = selectedVoice;
-          utterance.rate = speechRate;
-          utterance.pitch = speechPitch;
-          window.speechSynthesis.speak(utterance);
-        }, 100);
-        return true;
-      }
-    });
-  }, [selectedVoice, speechRate, speechPitch]);
+    // Side effects stay outside the state updater so Strict Mode can't run them twice.
+    if (ttsEnabled) {
+      window.speechSynthesis.cancel();
+      setTtsEnabled(false);
+      return;
+    }
+    setTtsEnabled(true);
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance('Read aloud is on. I will read things out for you.');
+      if (selectedVoice) utterance.voice = selectedVoice;
+      utterance.rate = speechRate;
+      utterance.pitch = speechPitch;
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+  }, [ttsEnabled, selectedVoice, speechRate, speechPitch]);
+
+  const toggleSound = useCallback(() => {
+    setSoundEnabled((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) setMuted(!soundEnabled);
+  }, [soundEnabled, isHydrated]);
 
   // Adjust speech settings
   const adjustSpeechRate = useCallback((rate) => {
@@ -230,6 +238,8 @@ export function AccessibilityProvider({ children }) {
       toggleHighContrast,
       ttsEnabled,
       toggleTts,
+      soundEnabled,
+      toggleSound,
       speak,
       speakWithEmphasis,
       stopSpeaking,

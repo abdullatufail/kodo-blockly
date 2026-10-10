@@ -6,13 +6,12 @@ import GamePlay from '@/components/GamePlay';
 
 export default function LevelPage() {
   const params = useParams();
-  const levelId = parseInt(params.id);
-  
-  const level = getLevelById(levelId);
+  const level = getLevelById(parseInt(params.id, 10));
 
   if (!level) {
     notFound();
   }
 
-  return <GamePlay level={level} />;
+  // Keyed by level so moving to the next level starts with a fresh board and editor.
+  return <GamePlay key={level.id} level={level} />;
 }

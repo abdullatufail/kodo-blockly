@@ -53,7 +53,8 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
-        emailRedirectTo: 'https://kodo-blockly.vercel.app/',
+        // Send people back to whichever deployment they signed up on.
+        emailRedirectTo: window.location.origin,
         data: {
           username,
         },
@@ -62,16 +63,7 @@ export function AuthProvider({ children }) {
 
     if (error) throw error;
 
-    // Create user profile with initial progress
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        username,
-        email,
-        created_at: new Date().toISOString(),
-      });
-    }
-
+    // The profile row is created by the on_auth_user_created trigger (supabase/schema.sql).
     return data;
   };
 

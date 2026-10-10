@@ -1,272 +1,225 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import React from 'react';
-import { levels, stages, getLevelsByStage } from '@/data/levels';
-import UserMenu from '@/components/UserMenu';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+import Kodo from '@/components/brand/Kodo';
+import Blob from '@/components/brand/Blobs';
+import { Cloud, Cottage, Flower, Star, Sun } from '@/components/brand/Stickers';
+import { Obstacle } from '@/components/game/BoardArt';
+import FunButton from '@/components/ui/FunButton';
+import { LockIcon, PlayIcon } from '@/components/ui/Icons';
+import { levels, stages, getLevelsByStage, isLevelUnlocked } from '@/data/levels';
 import { useProgress } from '@/hooks/useProgress';
-import { useAuth } from '@/context/AuthContext';
-import { useAccessibility } from '@/context/AccessibilityContext';
-import Image from 'next/image';
 
-const LevelsPage = () => {
-  const { user } = useAuth();
-  const { progress, totalStars, isLevelCompleted, getLevelProgress } = useProgress();
-  const { highContrast, toggleHighContrast, ttsEnabled, toggleTts } = useAccessibility();
+gsap.registerPlugin(ScrollTrigger);
 
-  const stageColors = ['#4ADE80', '#A78BFA', '#F472B6', '#FACC15'];
+const STEP_Y = 132;
+const TOP = 70;
+// Where each stop sits across the trail, in % of the column width.
+const WAVE = [50, 76, 60, 28, 44];
 
-  const getDifficultyStyle = (difficulty) => {
-    switch (difficulty) {
-      case 'Easy':
-        return 'bg-[#4ADE80]/20 text-[#166534] border-[#4ADE80]';
-      case 'Medium':
-        return 'bg-[#FACC15]/20 text-[#854D0E] border-[#FACC15]';
-      case 'Hard':
-        return 'bg-[#F472B6]/20 text-[#9D174D] border-[#F472B6]';
-      case 'Expert':
-        return 'bg-[#A78BFA]/20 text-[#5B21B6] border-[#A78BFA]';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
+function SceneryBit({ scenery, salt, className }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <Obstacle x={0} y={0} scenery={scenery} salt={salt} />
+    </svg>
+  );
+}
 
-  const renderStars = (stars) => {
+function Trail({ points, height }) {
+  // A smooth curve through every stop. x is in %, y in px; the stroke ignores the stretch.
+  const d = points.reduce((acc, p, i) => {
+    if (i === 0) return `M${p.x} ${p.y - TOP}`;
+    const prev = points[i - 1];
+    const mid = (p.y - prev.y) / 2;
+    return `${acc} C${prev.x} ${prev.y + mid} ${p.x} ${p.y - mid} ${p.x} ${p.y}`;
+  }, '');
+  return (
+    <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <path d={`${d} V${height}`} fill="none" stroke="var(--color-sand)" strokeWidth="24" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path
+        d={`${d} V${height}`}
+        fill="none"
+        stroke="var(--color-sand-deep)"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeDasharray="2 14"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function LevelStop({ level, x, y, state, stars, color }) {
+  const style = { left: `${x}%`, top: y };
+  const label = `Level ${level.id}: ${level.title}`;
+
+  if (state === 'locked') {
     return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3].map((i) => (
-          <span key={i} className={i <= stars ? 'text-[#FACC15]' : 'text-gray-300'}>
-            ★
-          </span>
-        ))}
+      <div className="map-stop absolute -translate-x-1/2 -translate-y-1/2" style={style} aria-label={`${label} (locked)`}>
+        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-paper text-ink-soft">
+          <LockIcon className="h-7 w-7" />
+        </div>
       </div>
     );
-  };
+  }
 
   return (
-    <div className="min-h-screen mx-4 md:mx-10 lg:mx-20 bg-white">
-      {/* Accessibility Controls - Fixed Position */}
-      <div className="fixed bottom-4 right-4 z-100 flex gap-2">
-        {/* High Contrast Toggle */}
-        <button
-          onClick={toggleHighContrast}
-          className={`accessibility-toggle px-3 py-2 rounded-full font-medium text-sm flex items-center gap-2 shadow-lg ${
-            highContrast 
-              ? 'bg-yellow-400 text-black border-2 border-black' 
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Toggle High Contrast Mode (for color blindness)"
-          aria-label="Toggle high contrast mode"
-        >
-          <span className="text-lg">👁️</span>
-          <span className="hidden sm:inline">{highContrast ? 'Normal' : 'High Contrast'}</span>
-        </button>
-
-        {/* Text-to-Speech Toggle */}
-        <button
-          onClick={toggleTts}
-          className={`accessibility-toggle px-3 py-2 rounded-full font-medium text-sm flex items-center gap-2 shadow-lg ${
-            ttsEnabled 
-              ? 'bg-green-400 text-black border-2 border-black' 
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Toggle Text-to-Speech"
-          aria-label="Toggle text to speech"
-        >
-          <span className="text-lg">🔊</span>
-          <span className="hidden sm:inline">{ttsEnabled ? 'TTS On' : 'TTS Off'}</span>
-        </button>
-      </div>
-
-      {/* Header */}
-      <header className="bg-white backdrop-blur-sm py-4 sticky top-4 border-3 border-black rounded-full z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium">
-              <span className="text-2xl">←</span>
-              <Image src="/kodo-svg.svg"
-                            alt="kodo-logo"
-                            height={100}
-                            width={100}/>
-            </Link>
-            <h1 className="hidden sm:block text-xl font-bold text-gray-800">Choose Your <span className="font-accent">Challenge</span></h1>
-            {/* <div className="flex items-center gap-4">
-              {user && (
-                <div className="flex items-center gap-2 bg-[#FACC15]/20 px-4 py-2 rounded-full">
-                  <span className="text-[#FACC15]">★</span>
-                  <span className="font-bold text-gray-700">{totalStars}</span>
-                </div>
-              )}
-              <UserMenu />
-            </div> */}
-          </div>
+    <div className="map-stop absolute -translate-x-1/2 -translate-y-1/2" style={style}>
+      {state === 'current' && (
+        <>
+          <span className="absolute inset-0 animate-pulse-ring rounded-full border-4 border-ink/40" aria-hidden="true" />
+          <Kodo className="pointer-events-none absolute -top-[74px] left-1/2 h-20 w-20 -translate-x-1/2 animate-bob" title="" aria-hidden="true" />
+        </>
+      )}
+      <Link
+        href={`/level/${level.id}`}
+        aria-label={`${label}${state === 'done' ? `, ${stars} of 3 stars` : ''}`}
+        className="btn-chunky group relative flex h-[84px] w-[84px] flex-col items-center justify-center rounded-full font-display text-3xl font-bold text-onfill"
+        style={{ backgroundColor: color }}
+      >
+        <span className="transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6">{level.id}</span>
+      </Link>
+      {state === 'done' ? (
+        <div className="absolute -bottom-7 left-1/2 flex -translate-x-1/2 gap-0.5">
+          {[1, 2, 3].map((i) => (
+            <Star key={i} className={`h-6 w-6 ${i === 2 ? '-translate-y-1' : ''}`} fill={i <= stars ? 'var(--color-ink)' : 'var(--color-line)'} />
+          ))}
         </div>
-      </header>
-
-      {/* Stages */}
-      <div className="container mx-auto px-4 py-8">
-        {stages.map((stage, stageIndex) => {
-          const stageLevels = getLevelsByStage(stage.id);
-          const completedCount = stageLevels.filter((l) => isLevelCompleted(l.id)).length;
-          const stageStars = stageLevels.reduce((sum, l) => sum + (getLevelProgress(l.id)?.stars || 0), 0);
-          const bgColor = stageColors[stageIndex % stageColors.length];
-
-          return (
-            <div key={stage.id} className="mb-12">
-              {/* Stage Header */}
-              <div 
-                className="rounded-3xl p-6 mb-6  border-3 border-black relative overflow-hidden"
-                style={{ backgroundColor: bgColor }}
-              >
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white/30 rounded-2xl flex items-center justify-center text-3xl">
-                      {stage.icon}
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Creative</h2>
-                      <p className="font-accent text-xl text-gray-800">{stage.name.replace('Stage ', '')}</p>
-                    </div>
-                  </div>
-                  {user && (
-                    <div className="text-right">
-                      <div className="bg-white/90 rounded-full px-4 py-2">
-                        <p className="font-bold text-gray-800">
-                          {completedCount}/{stageLevels.length} Complete
-                        </p>
-                        <p className="text-gray-600 text-sm">★ {stageStars} stars</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {user && (
-                  <div className="mt-4 bg-white/30 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-white h-full transition-all duration-500 rounded-full"
-                      style={{ width: `${(completedCount / stageLevels.length) * 100}%` }}
-                    />
-                  </div>
-                )}
-                {/* Decorative shape */}
-                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 blob-shape"></div>
-              </div>
-
-              {/* Stage Levels */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {stageLevels.map((level, index) => {
-                  const levelProgress = getLevelProgress(level.id);
-                  const completed = levelProgress?.completed;
-
-                  return (
-                    <Link href={`/level/${level.id}`} key={level.id} className="group">
-                      <div
-                        className={`bg-white rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer h-full ${
-                          completed ? 'ring-2 ring-[#4ADE80]' : ''
-                        }`}
-                      >
-                        {/* Level Number Badge */}
-                        <div 
-                          className="p-4 text-gray-900 relative"
-                          style={{ backgroundColor: `${bgColor}40` }}
-                        >
-                          {completed && (
-                            <div className="absolute top-2 right-2 bg-[#4ADE80] rounded-full p-1">
-                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                          )}
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="text-xs opacity-75 font-medium">Level</span>
-                              <h3 className="text-xl font-bold">{index + 1}</h3>
-                            </div>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getDifficultyStyle(
-                                level.difficulty
-                              )}`}
-                            >
-                              {level.difficulty}
-                            </span>
-                          </div>
-                          <p className="font-medium text-sm mt-1 truncate">{level.title}</p>
-                        </div>
-
-                        {/* Level Body */}
-                        <div className="p-4">
-                          {/* Stars Display */}
-                          {levelProgress && (
-                            <div className="mb-2 flex justify-center">
-                              {renderStars(levelProgress.stars)}
-                            </div>
-                          )}
-
-                          {/* Mini Grid Preview */}
-                          <div className="mb-3 bg-[#E8E4F0] rounded-2xl p-2 flex justify-center">
-                            <div
-                              className="inline-grid gap-0.5"
-                              style={{
-                                gridTemplateColumns: `repeat(${Math.min(level.grid[0].length, 8)}, 1fr)`,
-                              }}
-                            >
-                              {level.grid.slice(0, 6).map((row, y) =>
-                                row.slice(0, 8).map((tile, x) => {
-                                  let color = 'bg-gray-300';
-                                  if (tile === 'START') color = 'bg-[#A78BFA]';
-                                  if (tile === 'GOAL') color = 'bg-[#4ADE80]';
-                                  if (tile === 'OBSTACLE') color = 'bg-[#F472B6]';
-                                  if (tile === 'PATH') color = 'bg-white';
-                                  return (
-                                    <div
-                                      key={`${x}-${y}`}
-                                      className={`${color} rounded-sm`}
-                                      style={{ width: '10px', height: '10px' }}
-                                    />
-                                  );
-                                })
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Stats */}
-                          <div className="flex justify-between text-xs text-gray-500 mb-3">
-                            <span className="bg-[#E8E4F0] px-2 py-1 rounded-full">{level.maxMoves} moves</span>
-                            {level.maxBlocks && <span className="bg-[#E8E4F0] px-2 py-1 rounded-full">{level.maxBlocks} blocks</span>}
-                          </div>
-
-                          {/* Best Score */}
-                          {levelProgress?.best_moves && (
-                            <p className="text-xs text-center text-[#4ADE80] mb-2 font-medium">
-                              Best: {levelProgress.best_moves} moves
-                            </p>
-                          )}
-
-                          {/* Play Button */}
-                          <button
-                            className="w-full text-gray-900 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {completed ? 'Play Again' : 'Play'}
-                            <span className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center text-xs">↗</span>
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      
+      ) : (
+        <span className="absolute -bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-lg bg-paper px-2 py-0.5 font-display text-xs font-semibold">
+          <PlayIcon className="h-3 w-3" /> Play!
+        </span>
+      )}
+      <p
+        className={`pointer-events-none absolute top-1/2 hidden w-32 -translate-y-1/2 font-display text-sm font-semibold leading-tight text-ink-soft sm:block ${
+          x > 55 ? 'right-full mr-4 text-right' : 'left-full ml-4'
+        }`}
+      >
+        {level.title}
+      </p>
     </div>
   );
-};
+}
 
-export default LevelsPage;
+export default function LevelsPage() {
+  const { progress, totalStars, loading } = useProgress();
+  const rootRef = useRef(null);
+
+  const completed = levels.filter((l) => progress[l.id]?.completed).length;
+  const current = levels.find((l) => !progress[l.id]?.completed && isLevelUnlocked(l.id, progress)) || levels[levels.length - 1];
+
+  useEffect(() => {
+    if (loading) return;
+    const ctx = gsap.context(() => {
+      ScrollTrigger.batch('.map-stop', {
+        start: 'top 92%',
+        once: true,
+        onEnter: (batch) =>
+          gsap.fromTo(batch, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, stagger: 0.08, duration: 0.6, ease: 'back.out(2)', overwrite: true }),
+      });
+      gsap.utils.toArray('.land-banner').forEach((el) => {
+        gsap.from(el, { y: 50, rotate: -2, opacity: 0, duration: 0.7, ease: 'back.out(1.6)', scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
+      });
+    }, rootRef);
+
+    // Bring the next level into view for returning players.
+    const target = document.getElementById(`stop-${current.id}`);
+    if (target && current.id > 1) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+    return () => ctx.revert();
+  }, [loading, current.id]);
+
+  return (
+    <div ref={rootRef} className="min-h-screen overflow-x-clip">
+      <SiteHeader />
+
+      <section className="mx-auto max-w-6xl px-4 pb-6 pt-10 text-center sm:px-6">
+        <p className="font-display text-3xl text-leaf-deep">Kodo&apos;s long way home</p>
+        <h1 className="headline mt-2 text-6xl sm:text-7xl">Pick a level!</h1>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <span className="card-sticker flex items-center gap-2 rounded-2xl px-4 py-2 font-display text-lg font-semibold">
+            <Star className="h-7 w-7" /> {totalStars} / {levels.length * 3} stars
+          </span>
+          <span className="card-sticker flex items-center gap-2 rounded-2xl px-4 py-2 font-display text-lg font-semibold">
+            <Cottage className="h-7 w-7" /> {completed} / {levels.length} levels
+          </span>
+          {!loading && (
+            <FunButton href={`/level/${current.id}`} color="leaf" icon={<PlayIcon />}>
+              {completed === 0 ? 'Start playing' : `Continue: level ${current.id}`}
+            </FunButton>
+          )}
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        {stages.map((stage, stageIndex) => {
+          const stageLevels = getLevelsByStage(stage.id);
+          const doneHere = stageLevels.filter((l) => progress[l.id]?.completed).length;
+          const starsHere = stageLevels.reduce((sum, l) => sum + (progress[l.id]?.stars || 0), 0);
+          const points = stageLevels.map((_, i) => ({ x: WAVE[i % WAVE.length], y: TOP + i * STEP_Y }));
+          const height = TOP + stageLevels.length * STEP_Y;
+
+          return (
+            <section key={stage.id} className="relative mt-10" aria-labelledby={`land-${stage.id}`}>
+              <div className="land-banner card-sticker relative z-10 flex flex-col gap-4 overflow-hidden rounded-[30px] p-5 sm:flex-row sm:items-center sm:p-6">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-cream" aria-hidden="true">
+                  <Blob shape={stage.shape} color={stage.deep} face={stage.shape !== 'loop'} className="h-12 w-12 transition-transform duration-500 hover:rotate-45" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-sm font-semibold uppercase tracking-wider text-ink-soft">
+                    Land {stageIndex + 1} · {stage.concept}
+                  </p>
+                  <h2 id={`land-${stage.id}`} className="text-3xl font-bold">{stage.name}</h2>
+                  <p className="mt-1 font-semibold text-ink-soft">{stage.description}</p>
+                </div>
+                <div className="shrink-0 text-left sm:text-right">
+                  <p className="font-display text-lg font-semibold">{doneHere}/{stageLevels.length} done</p>
+                  <p className="flex items-center gap-1 font-display font-semibold text-ink-soft sm:justify-end">
+                    <Star className="h-5 w-5" /> {starsHere}/{stageLevels.length * 3}
+                  </p>
+                  <div className="mt-2 h-3 w-40 overflow-hidden rounded-full bg-cream">
+                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(doneHere / stageLevels.length) * 100}%`, backgroundColor: stage.color }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative mx-auto max-w-xl" style={{ height }}>
+                <Trail points={points} height={height} />
+                {!loading &&
+                  stageLevels.map((level, i) => {
+                    const p = progress[level.id];
+                    const state = p?.completed ? 'done' : !isLevelUnlocked(level.id, progress) ? 'locked' : 'current';
+                    return (
+                      <div key={level.id} id={`stop-${level.id}`}>
+                        <LevelStop level={level} x={points[i].x} y={points[i].y} state={state} stars={p?.stars || 0} color={stage.color} />
+                      </div>
+                    );
+                  })}
+
+                {/* Scenery along the trail on wide screens */}
+                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 1} className="absolute -left-40 top-24 hidden h-28 w-28 lg:block" />
+                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 2} className="absolute -right-36 top-64 hidden h-24 w-24 lg:block" />
+                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 3} className="absolute -left-28 top-[440px] hidden h-20 w-20 lg:block" />
+                {stageIndex === 0 && <Sun className="absolute -right-44 top-6 hidden h-24 w-24 animate-spin-slow lg:block" />}
+                {stageIndex === 1 && <Cloud className="absolute -right-48 top-8 hidden h-20 w-36 animate-float lg:block" />}
+                {stageIndex === 2 && <Flower className="absolute -right-36 top-[480px] hidden h-14 w-14 animate-wiggle lg:block" />}
+              </div>
+            </section>
+          );
+        })}
+
+        <div className="flex flex-col items-center pt-2">
+          <Cottage className="h-36 w-36" />
+          <p className="headline text-4xl">Home!</p>
+        </div>
+      </div>
+
+      <SiteFooter />
+    </div>
+  );
+}

@@ -1,288 +1,419 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --green-primary: #4ADE80;
-  --green-dark: #22C55E;
-  --purple-primary: #A78BFA;
-  --purple-light: #DDD6FE;
-  --pink-accent: #F472B6;
-  --yellow-accent: #FACC15;
-  --lavender: #E8E4F0;
+/* ─────────────────────────────────────────────────────────────────────────
+   Kodo design tokens
+   ───────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Sunny picture-book palette: forest-green ink, egg-yolk yellow, and a
+     handful of soft pastels for cards and blobs. */
+  --color-cream: #f7f4ea;
+  --color-paper: #ffffff;
+  --color-ink: #0f3d26;
+  --color-ink-soft: #46695a;
+  --color-line: #e2ddcc;
+  --color-onfill: #0f3d26;
+
+  --color-leaf: #6ccb82;
+  --color-leaf-deep: #1f8f4a;
+  --color-leaf-soft: #dcf2df;
+  --color-sky: #7db8f2;
+  --color-sky-deep: #1f6fd0;
+  --color-sky-soft: #dceafb;
+  --color-sun: #ffd43b;
+  --color-sun-deep: #d9a300;
+  --color-sun-soft: #fff1b8;
+  --color-berry: #f39bbd;
+  --color-berry-deep: #d4487a;
+  --color-berry-soft: #fde2ec;
+  --color-grape: #c8b8f2;
+  --color-grape-deep: #7a5cd6;
+  --color-grape-soft: #eee8fd;
+  --color-peach: #f58b4c;
+  --color-peach-deep: #d4561c;
+  --color-peach-soft: #fdd9c3;
+  --color-lime: #e2f5b0;
+  --color-lime-deep: #b3d860;
+  --color-grass: #b9e08f;
+  --color-grass-deep: #7dbd54;
+  --color-sand: #f6e8c4;
+  --color-sand-deep: #dcc38a;
+
+
+  --animate-wiggle: wiggle 2.4s ease-in-out infinite;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-bob: bob 1.6s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.8s ease-out infinite;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Poppins', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-display: var(--font-ranchers), system-ui, sans-serif;
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
 }
 
-html,
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-4px) scale(0.98, 1.02); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+@keyframes particle-burst {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; }
+}
+
+html {
+  background: var(--color-cream);
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  padding: 0;
+  /* The cream lives on <html> so the grain layer below can sit behind content. */
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Poppins', sans-serif;
-  cursor: url('/cursor-large.svg') 0 0, auto;
+/* A whisper of paper grain, like a picture book page. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .45 0 0 0 0 .35 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Custom cursor on clickable elements */
-body *:active {
-  cursor: url('/cursor-click-large.svg') 0 0, pointer !important;
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+/* Ranchers only comes in one weight: never let the browser fake a bold. */
+h1, h2, h3, h4, .font-display, .headline {
+  font-weight: 400;
+  font-synthesis: none;
+  /* Ranchers sets its spaces very tight. */
+  word-spacing: 0.12em;
+}
+h1, h2, h3 {
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+}
+/* Big shouty sign-painter headlines on the landing pages. */
+.headline {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: 0.88;
+  letter-spacing: 0.005em;
 }
 
-button, a, [role="button"] {
-  cursor: url('/cursor-large.svg') 0 0, pointer;
+::selection {
+  background: var(--color-sun);
+  color: var(--color-ink);
 }
 
-button:active, a:active, [role="button"]:active {
-  cursor: url('/cursor-click-large.svg') 0 0, pointer !important;
+:focus-visible {
+  outline: 3px solid var(--color-sky-deep);
+  outline-offset: 3px;
+  border-radius: 12px;
 }
 
-/* Click confetti particles */
+/* ── Flat, squishy game buttons and cards ─────────────────────────────
+   No outlines, no shadows. Buttons wobble like jelly when you hover them
+   and squish when you press. */
+@keyframes jelly {
+  0% { transform: scale(1, 1) rotate(0deg); }
+  25% { transform: scale(1.14, 0.86) rotate(-2deg); }
+  42% { transform: scale(0.9, 1.1) rotate(2.5deg); }
+  58% { transform: scale(1.06, 0.95) rotate(-1.5deg); }
+  74% { transform: scale(0.98, 1.03) rotate(1deg); }
+  100% { transform: scale(1.05, 1.05) rotate(-2deg); }
+}
+@keyframes letter-hop {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(-0.3em) rotate(-10deg); }
+  70% { transform: translateY(0.05em) rotate(4deg); }
+}
+
+@layer components {
+  .btn-chunky {
+    border: 0;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+  .btn-chunky:hover:not(:disabled) {
+    animation: jelly 0.65s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+  }
+  .btn-chunky:active:not(:disabled),
+  .btn-chunky[data-pressed='true'] {
+    animation: none;
+    transform: scale(1.08, 0.84) translateY(2px);
+  }
+  .btn-chunky:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .card-sticker {
+    background: var(--color-paper);
+  }
+}
+
+/* Letters of a label hop in a little wave, one after another. */
+.group:hover .wave-char,
+.group:focus-visible .wave-char {
+  animation: letter-hop 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--i) * 35ms) both;
+}
+
+.marquee-track {
+  animation: marquee var(--marquee-speed, 28s) linear infinite;
+}
+
+.eye-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 4.6s infinite;
+}
+
+/* ── Kodo's feelings ──────────────────────────────────────────────────
+   The body squashes from its feet; the eyes blink, wander and react. */
+.kodo .kodo-squash,
+.kodo .kodo-eyes,
+.kodo .kodo-eyes-happy,
+.kodo .kodo-shadow {
+  transform-box: fill-box;
+}
+.kodo .kodo-squash {
+  transform-origin: 50% 100%;
+  animation: kodo-breathe 2.8s ease-in-out infinite;
+}
+.kodo .kodo-shadow {
+  transform-origin: 50% 50%;
+  animation: kodo-shadow 2.8s ease-in-out infinite;
+}
+.kodo .kodo-look {
+  transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.kodo .kodo-eyes {
+  transform-origin: 50% 50%;
+  transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), opacity 0.15s;
+}
+.kodo .kodo-eyes-happy {
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transform: scaleY(0.2);
+  transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), opacity 0.15s;
+}
+/* Looking around while it waits for you. */
+.kodo[data-look='center'][data-mood='happy'] .kodo-wander {
+  animation: kodo-wander 7s ease-in-out infinite;
+}
+
+/* Cheer: bouncy puffing with squinty happy eyes. */
+.kodo[data-mood='cheer'] .kodo-squash {
+  animation: kodo-cheer 0.8s cubic-bezier(0.3, 1.4, 0.5, 1) infinite;
+}
+.kodo[data-mood='cheer'] .kodo-eyes {
+  opacity: 0;
+  animation: none;
+}
+.kodo[data-mood='cheer'] .kodo-eyes-happy {
+  opacity: 1;
+  transform: scaleY(1);
+}
+/* Wow: inflates like a balloon, eyes go wide. */
+.kodo[data-mood='wow'] .kodo-squash {
+  animation: kodo-inflate 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) forwards;
+}
+.kodo[data-mood='wow'] .kodo-eyes {
+  animation: none;
+  transform: scale(1.25);
+}
+/* Oops: squeezed flat and wincing. */
+.kodo[data-mood='oops'] .kodo-squash {
+  animation: kodo-squeeze 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
+}
+.kodo[data-mood='oops'] .kodo-eyes {
+  animation: none;
+  transform: scale(1.1, 0.45);
+}
+
+@keyframes kodo-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.035, 0.965); }
+}
+@keyframes kodo-shadow {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.05); }
+}
+@keyframes kodo-wander {
+  0%, 30%, 100% { transform: translate(0, 0); }
+  36%, 52% { transform: translate(-9px, 2px); }
+  58%, 74% { transform: translate(9px, -4px); }
+  80%, 94% { transform: translate(0, 5px); }
+}
+@keyframes kodo-cheer {
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  30% { transform: scale(1.1, 0.88) translateY(0); }
+  60% { transform: scale(0.92, 1.1) translateY(-6px); }
+}
+@keyframes kodo-inflate {
+  0% { transform: scale(1, 1); }
+  50% { transform: scale(1.18, 1.18); }
+  100% { transform: scale(1.1, 1.1); }
+}
+@keyframes kodo-squeeze {
+  0% { transform: scale(1, 1); }
+  35% { transform: scale(1.22, 0.74); }
+  65% { transform: scale(1.08, 0.88); }
+  100% { transform: scale(1.12, 0.86); }
+}
+
+/* The loader's curtain: a round hole (--hole) opens to reveal the page.
+   If scripts never run, it quietly gets out of the way on its own. */
+.page-loader {
+  --hole: 0px;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--hole), #000 calc(var(--hole) + 1px));
+  mask-image: radial-gradient(circle at 50% 50%, transparent var(--hole), #000 calc(var(--hole) + 1px));
+  animation: loader-failsafe 0.4s ease 10s forwards;
+}
+@keyframes loader-failsafe {
+  to { opacity: 0; visibility: hidden; }
+}
+
 .click-particle {
   position: fixed;
   pointer-events: none;
-  border-radius: 50%;
   z-index: 9999;
-  animation: particle-burst 0.6s ease-out forwards;
+  animation: particle-burst 0.65s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
 
-@keyframes particle-burst {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--tx), var(--ty)) scale(0);
-    opacity: 0;
-  }
+/* ── Blockly: make the editor feel like part of the game ──────────────── */
+.blocklySvg {
+  background: transparent !important;
 }
-
-/* Decorative shapes */
-.blob-shape {
-  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+.blocklyMainBackground {
+  stroke: none !important;
 }
-
-.pill-shape {
-  border-radius: 100px;
-}
-
-/* Italic accent font */
-.font-accent {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-}
-
-/* Blockly styles - override default heights */
-.blocklyWorkspace {
-  background-color: #f9f9f9 !important;
-}
-
-.blocklyToolboxDiv {
-  background-color: #e5e5e5 !important;
-  padding: 4px 0 !important;
-}
-
-.blocklyFlyout {
-  fill: #f0f0f0 !important;
-}
-
-/* Ensure toolbox categories are visible and clickable */
-.blocklyToolboxCategory {
-  cursor: pointer !important;
-}
-
-.blocklyTreeRow {
-  padding: 6px 8px !important;
-  margin: 2px 4px !important;
-  border-radius: 4px !important;
-}
-
-.blocklyTreeRow:hover {
-  background-color: rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Fix for flyout background */
 .blocklyFlyoutBackground {
-  fill: #f5f5f5 !important;
+  fill: var(--color-sun-soft) !important;
+  fill-opacity: 1 !important;
+}
+.blocklyText,
+.blocklyFlyoutLabelText,
+.blocklyDropdownText {
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+}
+/* Ink text on the pastel blocks reads far better than zelos' default white. */
+.injectionDiv .blocklyText,
+.injectionDiv .blocklyDropdownText {
+  fill: #0f3d26 !important;
+}
+.injectionDiv .blocklyEditableField > rect,
+.injectionDiv .blocklyFieldRect {
+  fill: #ffffff !important;
+  fill-opacity: 1 !important;
+  stroke: none !important;
+}
+.injectionDiv .blocklyDropdownArrow,
+.injectionDiv .blocklyEditableField image {
+  filter: brightness(0.25);
+}
+.blocklyWidgetDiv .blocklyMenu,
+.blocklyDropDownDiv {
+  border-radius: 14px !important;
+  font-family: var(--font-sans) !important;
+}
+.blocklyScrollbarHandle {
+  fill: var(--color-ink-soft) !important;
+  fill-opacity: 0.35 !important;
+}
+.blocklyTrash {
+  opacity: 0.6;
+}
+/* The block Kodo is running right now gets a thick sunny outline. */
+.injectionDiv .blocklyHighlighted > .blocklyPath {
+  stroke: #e0a21a !important;
+  stroke-width: 6px !important;
+  filter: drop-shadow(0 0 6px rgb(248 205 90 / 0.9));
 }
 
-/* Make sure toolbox scrollbar works */
-.blocklyToolboxDiv::-webkit-scrollbar {
-  width: 8px;
+/* ─────────────────────────────────────────────────────────────────────────
+   High contrast mode: stark black/white with saturated, clearly different
+   colours. Swapping the tokens recolours every component at once.
+   ───────────────────────────────────────────────────────────────────────── */
+html.high-contrast {
+  --color-cream: #000000;
+  --color-paper: #111111;
+  --color-ink: #ffffff;
+  --color-ink-soft: #f2f2f2;
+  --color-line: #ffffff;
+  --color-onfill: #000000;
+  --color-leaf: #2ee66b;
+  --color-leaf-deep: #2ee66b;
+  --color-leaf-soft: #0d3b1c;
+  --color-sky: #2ec8ff;
+  --color-sky-deep: #2ec8ff;
+  --color-sky-soft: #06304a;
+  --color-sun: #ffe600;
+  --color-sun-deep: #ffe600;
+  --color-sun-soft: #3a3400;
+  --color-berry: #ff5c7a;
+  --color-berry-deep: #ff5c7a;
+  --color-berry-soft: #45101b;
+  --color-grape: #d29bff;
+  --color-grape-deep: #d29bff;
+  --color-grape-soft: #2c1243;
+  --color-peach: #ff9d3c;
+  --color-peach-deep: #ff9d3c;
+  --color-peach-soft: #43240a;
+  --color-grass: #1f5f2f;
+  --color-grass-deep: #2ee66b;
+  --color-sand: #e8e8e8;
+  --color-sand-deep: #ffffff;
+  --color-lime: #b6ff3c;
+  --color-lime-deep: #b6ff3c;
+}
+html.high-contrast body::before {
+  display: none;
+}
+/* High contrast brings the outlines back so every control has a clear edge. */
+html.high-contrast .btn-chunky,
+html.high-contrast .card-sticker {
+  border: 2px solid var(--color-ink);
 }
 
-.blocklyToolboxDiv::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 4px;
-}
-
-/* Make sure blockly scrollbars work */
-.blocklyScrollbarVertical,
-.blocklyScrollbarHorizontal {
-  z-index: 10;
-}
-
-/* =====================================================
-   HIGH CONTRAST MODE - Accessibility for Color Blind Users
-   ===================================================== */
-
-/* High contrast color palette using patterns and strong contrasts */
-.high-contrast {
-  --background: #000000;
-  --foreground: #FFFFFF;
-  --green-primary: #00FF00;
-  --green-dark: #00CC00;
-  --purple-primary: #FFFF00;
-  --purple-light: #FFFFCC;
-  --pink-accent: #FF00FF;
-  --yellow-accent: #FFFF00;
-  --lavender: #1A1A1A;
-}
-
-/* High contrast body styles */
-.high-contrast body {
-  background: #000000;
-  color: #FFFFFF;
-}
-
-/* High contrast links and buttons */
-.high-contrast a,
-.high-contrast button {
-  border: 2px solid #FFFFFF;
-}
-
-.high-contrast a:focus,
-.high-contrast button:focus {
-  outline: 3px solid #FFFF00;
-  outline-offset: 2px;
-}
-
-/* High contrast for game board cells */
-.high-contrast .cell-start {
-  background: #0000FF !important;
-  border: 3px solid #FFFFFF !important;
-}
-
-.high-contrast .cell-goal {
-  background: #00FF00 !important;
-  border: 3px solid #FFFFFF !important;
-}
-
-.high-contrast .cell-obstacle {
-  background: #FF0000 !important;
-  border: 3px solid #FFFFFF !important;
-}
-
-.high-contrast .cell-path {
-  background: #333333 !important;
-  border: 2px solid #FFFFFF !important;
-}
-
-/* High contrast for navigation */
-.high-contrast nav {
-  background: #000000 !important;
-  border: 2px solid #FFFFFF !important;
-}
-
-/* High contrast for cards and panels */
-.high-contrast .bg-white,
-.high-contrast .bg-white\/90 {
-  background: #1A1A1A !important;
-  border: 2px solid #FFFFFF !important;
-}
-
-/* High contrast for status messages */
-.high-contrast .status-success {
-  background: #003300 !important;
-  color: #00FF00 !important;
-  border: 2px solid #00FF00 !important;
-}
-
-.high-contrast .status-error {
-  background: #330000 !important;
-  color: #FF0000 !important;
-  border: 2px solid #FF0000 !important;
-}
-
-.high-contrast .status-info {
-  background: #000033 !important;
-  color: #00FFFF !important;
-  border: 2px solid #00FFFF !important;
-}
-
-/* High contrast text */
-.high-contrast .text-gray-600,
-.high-contrast .text-gray-500,
-.high-contrast .text-gray-700,
-.high-contrast .text-gray-800,
-.high-contrast .text-gray-900 {
-  color: #FFFFFF !important;
-}
-
-/* High contrast backgrounds */
-.high-contrast .bg-\[\#E8E4F0\] {
-  background: #000000 !important;
-}
-
-.high-contrast .bg-gray-100,
-.high-contrast .bg-gray-200 {
-  background: #333333 !important;
-}
-
-/* High contrast for colored elements - use distinct patterns/symbols */
-.high-contrast .bg-\[\#4ADE80\] {
-  background: #00FF00 !important;
-  color: #000000 !important;
-}
-
-.high-contrast .bg-\[\#A78BFA\] {
-  background: #FFFF00 !important;
-  color: #000000 !important;
-}
-
-.high-contrast .bg-\[\#F472B6\] {
-  background: #FF00FF !important;
-  color: #000000 !important;
-}
-
-.high-contrast .bg-\[\#FACC15\] {
-  background: #00FFFF !important;
-  color: #000000 !important;
-}
-
-/* Accessibility toggle button styles */
-.accessibility-toggle {
-  transition: all 0.2s ease;
-}
-
-.accessibility-toggle:hover {
-  transform: scale(1.05);
-}
-
-.accessibility-toggle.active {
-  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5);
-}
-
-/* TTS button animation */
-.tts-speaking {
-  animation: pulse-speak 1s infinite;
-}
-
-@keyframes pulse-speak {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
+/* Kids (and grown-ups) who prefer less motion get a calm Kodo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

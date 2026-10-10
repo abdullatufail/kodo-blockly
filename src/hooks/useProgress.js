@@ -3,17 +3,76 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
+// Progress always lives on this device, so kids can play without an account.
+// When someone is signed in it is also saved to Supabase, and anything earned
+// as a guest is carried over the first time they sign in.
+const LOCAL_KEY = 'kodo:progress';
+
+function readLocal() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocal(map) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function better(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return {
+    completed: a.completed || b.completed,
+    stars: Math.max(a.stars || 0, b.stars || 0),
+    best_moves: a.best_moves && b.best_moves ? Math.min(a.best_moves, b.best_moves) : a.best_moves || b.best_moves,
+    attempts: Math.max(a.attempts || 0, b.attempts || 0),
+  };
+}
+
+function mergeMaps(a, b) {
+  const out = { ...a };
+  for (const [id, entry] of Object.entries(b)) out[id] = better(out[id], entry);
+  return out;
+}
+
+function sumStars(map) {
+  return Object.values(map).reduce((sum, p) => sum + (p?.stars || 0), 0);
+}
+
 export function useProgress() {
-  const { user, supabase, isConfigured } = useAuth();
+  const { user, supabase, isConfigured, loading: authLoading } = useAuth();
   const [progress, setProgress] = useState({});
   const [loading, setLoading] = useState(true);
-  const [totalStars, setTotalStars] = useState(0);
   const [error, setError] = useState(null);
 
-  // Fetch user progress
+  const upsertRemote = useCallback(
+    async (levelId, entry) => {
+      const { error: upsertError } = await supabase.from('level_progress').upsert(
+        {
+          user_id: user.id,
+          level_id: Number(levelId),
+          completed: entry.completed,
+          stars: entry.stars,
+          best_moves: entry.best_moves,
+          attempts: entry.attempts,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,level_id' }
+      );
+      if (upsertError) console.error('Error saving progress:', upsertError.message);
+      return !upsertError;
+    },
+    [supabase, user]
+  );
+
   const fetchProgress = useCallback(async () => {
+    const local = readLocal();
     if (!user || !supabase || !isConfigured) {
-      setProgress({});
+      setProgress(local);
       setLoading(false);
       setError(null);
       return;
@@ -27,130 +86,67 @@ export function useProgress() {
         .eq('user_id', user.id);
 
       if (fetchError) {
-        // Check if error is because table doesn't exist
         if (fetchError.code === '42P01' || fetchError.message?.includes('does not exist')) {
-          console.warn('level_progress table does not exist. Please run the schema.sql in your Supabase dashboard.');
           setError('Database not set up. Please run schema.sql in Supabase SQL Editor.');
         } else {
-          console.error('Error fetching progress:', fetchError.message || fetchError);
           setError(fetchError.message || 'Failed to fetch progress');
         }
-        setProgress({});
-        setTotalStars(0);
-        setLoading(false);
+        setProgress(local);
         return;
       }
 
-      const progressMap = {};
-      let stars = 0;
-      
+      const remote = {};
       data?.forEach((item) => {
-        progressMap[item.level_id] = {
+        remote[item.level_id] = {
           completed: item.completed,
           stars: item.stars,
           best_moves: item.best_moves,
           attempts: item.attempts,
         };
-        stars += item.stars || 0;
       });
 
-      setProgress(progressMap);
-      setTotalStars(stars);
+      // Carry guest progress over to the account.
+      for (const [id, entry] of Object.entries(local)) {
+        const merged = better(remote[id], entry);
+        if (!remote[id] || merged.stars > (remote[id].stars || 0) || (merged.completed && !remote[id].completed)) {
+          upsertRemote(id, merged);
+        }
+      }
+
+      setProgress(mergeMaps(remote, local));
     } catch (err) {
-      console.error('Error fetching progress:', err?.message || err);
       setError(err?.message || 'Failed to fetch progress');
+      setProgress(local);
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, isConfigured]);
+  }, [user, supabase, isConfigured, upsertRemote]);
 
   useEffect(() => {
-    fetchProgress();
-  }, [fetchProgress]);
+    if (authLoading) return;
+    // Defer so we never set state synchronously inside the effect body.
+    queueMicrotask(fetchProgress);
+  }, [fetchProgress, authLoading]);
 
-  // Save level completion
   const saveProgress = async (levelId, stars, moves) => {
-    if (!user || !supabase || !isConfigured) {
-      console.warn('Cannot save progress: user not logged in or Supabase not configured');
-      return false;
+    const local = readLocal();
+    const previous = better(local[levelId], progress[levelId]);
+    const entry = better(previous, { completed: true, stars, best_moves: moves, attempts: 0 });
+    entry.attempts = (previous?.attempts || 0) + 1;
+
+    writeLocal({ ...local, [levelId]: entry });
+    setProgress((prev) => ({ ...prev, [levelId]: entry }));
+
+    if (user && supabase && isConfigured) {
+      return upsertRemote(levelId, entry);
     }
-
-    try {
-      // Check if progress exists
-      const { data: existing, error: fetchError } = await supabase
-        .from('level_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('level_id', levelId)
-        .single();
-
-      // PGRST116 means no rows returned, which is fine for new progress
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Error checking existing progress:', fetchError.message);
-      }
-
-      if (existing) {
-        // Update only if better
-        const newBestMoves = existing.best_moves 
-          ? Math.min(existing.best_moves, moves) 
-          : moves;
-        const newStars = Math.max(existing.stars || 0, stars);
-
-        const { error: updateError } = await supabase
-          .from('level_progress')
-          .update({
-            completed: true,
-            stars: newStars,
-            best_moves: newBestMoves,
-            attempts: (existing.attempts || 0) + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id)
-          .eq('level_id', levelId);
-
-        if (updateError) {
-          console.error('Error updating progress:', updateError.message);
-          return false;
-        }
-      } else {
-        // Insert new progress
-        const { error: insertError } = await supabase.from('level_progress').insert({
-          user_id: user.id,
-          level_id: levelId,
-          completed: true,
-          stars,
-          best_moves: moves,
-          attempts: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-        if (insertError) {
-          console.error('Error inserting progress:', insertError.message);
-          return false;
-        }
-      }
-
-      // Refresh progress
-      await fetchProgress();
-      return true;
-    } catch (err) {
-      console.error('Error saving progress:', err?.message || err);
-      return false;
-    }
+    return true;
   };
 
-  // Get progress for a specific level
-  const getLevelProgress = (levelId) => {
-    return progress[levelId] || null;
-  };
+  const getLevelProgress = (levelId) => progress[levelId] || null;
 
-  // Check if level is completed
-  const isLevelCompleted = (levelId) => {
-    return progress[levelId]?.completed || false;
-  };
+  const isLevelCompleted = (levelId) => progress[levelId]?.completed || false;
 
-  // Get completion percentage for a stage
   const getStageCompletion = (levelIds) => {
     const completed = levelIds.filter((id) => isLevelCompleted(id)).length;
     return Math.round((completed / levelIds.length) * 100);
@@ -159,7 +155,7 @@ export function useProgress() {
   return {
     progress,
     loading,
-    totalStars,
+    totalStars: sumStars(progress),
     error,
     saveProgress,
     getLevelProgress,

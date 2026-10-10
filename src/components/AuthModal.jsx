@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/context/AuthContext';
+import Kodo from './brand/Kodo';
+import { CloseIcon } from './ui/Icons';
+
+const inputClass =
+  'w-full rounded-2xl bg-cream px-4 py-3 font-semibold text-ink placeholder:text-ink-soft/60 outline-none transition focus:bg-paper';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode);
@@ -12,9 +18,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, isConfigured } = useAuth();
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,155 +40,102 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
         await signIn(email, password);
         onClose();
       } else {
-        if (!username.trim()) {
-          throw new Error('Username is required');
-        }
+        if (!username.trim()) throw new Error('Please pick a username');
         await signUp(email, password, username);
-        setSuccess('Account created! Please check your email to verify your account.');
+        setSuccess('Account created! Check your email to confirm it, then sign in.');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleMode = () => {
-    setMode(mode === 'login' ? 'signup' : 'login');
+  const switchMode = (next) => {
+    setMode(next);
     setError('');
     setSuccess('');
   };
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-[#4ADE80] p-6 text-white relative overflow-hidden">
-          <div className="flex justify-between items-center relative z-10">
-            <h2 className="text-2xl font-bold">
-              {mode === 'login' ? '👋 Welcome Back!' : '🚀 Join the Adventure!'}
-            </h2>
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="card-sticker relative w-full max-w-md rounded-[32px] p-6 pt-14 sm:p-8 sm:pt-16">
+        <Kodo className="absolute -top-14 left-1/2 h-28 w-28 -translate-x-1/2 animate-bob" mood={success ? 'cheer' : 'happy'} />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="btn-chunky absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-cream"
+        >
+          <CloseIcon />
+        </button>
+
+        <h2 id="auth-title" className="text-center text-3xl font-bold">
+          {mode === 'login' ? 'Welcome back!' : 'Join the adventure!'}
+        </h2>
+        <p className="mt-1 text-center text-ink-soft">
+          {mode === 'login' ? 'Sign in to keep your stars on every device.' : 'A grown-up can help make your account.'}
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-1 rounded-2xl bg-cream p-1">
+          {['login', 'signup'].map((m) => (
             <button
-              onClick={onClose}
-              className="w-8 h-8 bg-white/30 rounded-full flex items-center justify-center hover:bg-white/50 text-xl"
+              key={m}
+              type="button"
+              onClick={() => switchMode(m)}
+              className={`rounded-xl py-2 font-display font-semibold transition ${mode === m ? 'bg-sun text-onfill' : 'text-ink-soft hover:text-ink'}`}
             >
-              ×
+              {m === 'login' ? 'Sign in' : 'New account'}
             </button>
-          </div>
-          <p className="text-white mt-1 relative z-10">
-            {mode === 'login'
-              ? 'Sign in to save your progress'
-              : 'Create an account to track your achievements'}
-          </p>
-          {/* Decorative blob */}
-          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/20 blob-shape"></div>
+          ))}
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-[#F472B6]/20 border border-[#F472B6] text-[#9D174D] px-4 py-3 rounded-2xl text-sm">
-              {error}
-            </div>
-          )}
+        {!isConfigured && (
+          <p className="mt-4 rounded-2xl bg-sun-soft px-4 py-3 text-sm font-semibold">
+            Accounts aren&apos;t set up on this copy of Kodo yet, but your stars are still saved on this device.
+          </p>
+        )}
 
-          {success && (
-            <div className="bg-[#4ADE80]/20 border border-[#4ADE80] text-[#166534] px-4 py-3 rounded-2xl text-sm">
-              {success}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+          {error && <p className="rounded-2xl bg-berry-soft px-4 py-3 text-sm font-semibold text-ink" role="alert">{error}</p>}
+          {success && <p className="rounded-2xl bg-leaf-soft px-4 py-3 text-sm font-semibold text-ink" role="status">{success}</p>}
 
           {mode === 'signup' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-[#E8E4F0] rounded-2xl focus:ring-2 focus:ring-[#A78BFA] focus:border-[#A78BFA] outline-none bg-[#E8E4F0]/30"
-                placeholder="Choose a username"
-                required={mode === 'signup'}
-              />
-            </div>
+            <label className="block">
+              <span className="mb-1 block font-display text-sm font-semibold">Username</span>
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} placeholder="SuperCoder42" autoComplete="username" required />
+            </label>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-[#E8E4F0] rounded-2xl focus:ring-2 focus:ring-[#A78BFA] focus:border-[#A78BFA] outline-none bg-[#E8E4F0]/30"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+          <label className="block">
+            <span className="mb-1 block font-display text-sm font-semibold">Email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="grownup@example.com" autoComplete="email" required />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-display text-sm font-semibold">Password</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-[#E8E4F0] rounded-2xl focus:ring-2 focus:ring-[#A78BFA] focus:border-[#A78BFA] outline-none bg-[#E8E4F0]/30"
-              placeholder="••••••••"
+              className={inputClass}
+              placeholder="At least 6 characters"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               required
               minLength={6}
             />
-          </div>
+          </label>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#4ADE80] text-white py-3 rounded-full font-bold hover:bg-[#22C55E] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={loading || !isConfigured}
+            className="btn-chunky mt-2 w-full rounded-2xl bg-leaf py-3.5 font-display text-lg font-semibold text-onfill"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Processing...
-              </span>
-            ) : mode === 'login' ? (
-              <>Sign In <span className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center text-sm">→</span></>
-            ) : (
-              <>Create Account <span className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center text-sm">→</span></>
-            )}
+            {loading ? 'One moment…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
         </form>
-
-        {/* Toggle Mode */}
-        <div className="px-6 pb-6 text-center">
-          <p className="text-gray-600">
-            {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
-            <button
-              onClick={toggleMode}
-              className="ml-2 text-[#A78BFA] font-semibold hover:underline"
-            >
-              {mode === 'login' ? 'Sign Up' : 'Sign In'}
-            </button>
-          </p>
-        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,434 +1,400 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import GameBoard from '@/components/GameBoard';
 import BlocklyEditor from '@/components/BlocklyEditor';
 import LevelCompleteModal from '@/components/LevelCompleteModal';
-import Link from 'next/link';
+import HowToPlay from '@/components/game/HowToPlay';
+import Kodo from '@/components/brand/Kodo';
+import { Star } from '@/components/brand/Stickers';
+import { AccessibilityToggles } from '@/components/AccessibilityDock';
+import {
+  ArrowLeftIcon, BulbIcon, CheckIcon, PlayIcon, RabbitIcon, ResetIcon, SlidersIcon, SnailIcon, StopIcon, TrashIcon,
+} from '@/components/ui/Icons';
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/context/AuthContext';
 import { useAccessibility } from '@/context/AccessibilityContext';
-import { getNextLevelInStage, getStageById } from '@/data/levels';
+import { getNextLevelInStage, getStageById, getLevelsByStage } from '@/data/levels';
+import { countBlocks, runProgram, scoreRun } from '@/lib/game/engine';
+import { sfx } from '@/lib/sfx';
+
+const SPEEDS = [
+  { id: 'slow', label: 'Slow', value: 0.6, Icon: SnailIcon },
+  { id: 'normal', label: 'Normal', value: 1, Icon: PlayIcon },
+  { id: 'fast', label: 'Fast', value: 2.2, Icon: RabbitIcon },
+];
+
+const BLOCK_NAMES = {
+  move_forward: 'move forward',
+  turn_right: 'turn right',
+  turn_left: 'turn left',
+  repeat_times: 'repeat',
+  if_path_ahead: 'if path',
+  if_else_path: 'if path… else',
+  while_path: 'while path',
+  repeat_until_goal: 'repeat until home',
+};
+
+const FEEDBACK = {
+  empty: { mood: 'wow', text: 'Snap some blocks under the pink "when Go is pressed" block, then press Go!' },
+  running: { mood: 'happy', text: 'Here I go! Watch the glowing block to see which step I\'m on.' },
+  bump: { mood: 'oops', text: 'Bonk! Something is in the way. The glowing block is where I bumped. Try a turn before it?' },
+  lost: { mood: 'oops', text: 'I ran out of blocks before getting home. What should I do next?' },
+  tooLong: { mood: 'wow', text: 'Whoa, I got dizzy! That loop kept going and going. Does it ever stop?' },
+};
 
 export default function GamePlay({ level }) {
-  const [characterPos, setCharacterPos] = useState(level.startPosition);
-  const [direction, setDirection] = useState(level.startDirection);
-  const [animationCommands, setAnimationCommands] = useState([]);
-  const [gameStatus, setGameStatus] = useState('editing');
-  const [message, setMessage] = useState('');
-  const [moveCount, setMoveCount] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [completionData, setCompletionData] = useState({ stars: 0, isNewBest: false });
-  // Initialize tutorial state based on localStorage (only for level 1)
-  const [showTutorial, setShowTutorial] = useState(() => {
-    if (typeof window !== 'undefined' && level.id === 1) {
-      const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-      return !hasSeenTutorial;
-    }
-    return false;
-  });
+  const boardRef = useRef(null);
+  const editorRef = useRef(null);
+  const runIdRef = useRef(0);
+
+  const [status, setStatus] = useState('idle'); // idle | running | done
+  const [coach, setCoach] = useState({ mood: 'happy', text: level.story });
+  const [blocksUsed, setBlocksUsed] = useState(0);
+  const [speedIndex, setSpeedIndex] = useState(1);
+  const [hintIndex, setHintIndex] = useState(-1);
+  const [lastMissions, setLastMissions] = useState(null);
+  const [completion, setCompletion] = useState(null);
+  const [showHowTo, setShowHowTo] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { user } = useAuth();
   const { saveProgress, getLevelProgress } = useProgress();
-  const { highContrast, toggleHighContrast, ttsEnabled, toggleTts, speak, stopSpeaking } = useAccessibility();
-  const levelProgress = getLevelProgress(level.id);
+  const { speak, ttsEnabled, stopSpeaking } = useAccessibility();
+
   const stage = getStageById(level.stageId);
+  const stageLevels = getLevelsByStage(level.stageId);
+  const levelNumberInStage = stageLevels.findIndex((l) => l.id === level.id) + 1;
   const nextLevel = getNextLevelInStage(level.id);
+  const saved = getLevelProgress(level.id);
+  const speed = SPEEDS[speedIndex];
+  const atLimit = level.maxBlocks && blocksUsed >= level.maxBlocks;
 
-  const stageColors = { 1: '#4ADE80', 2: '#A78BFA', 3: '#F472B6', 4: '#FACC15' };
-  const stageColor = stageColors[level.stageId] || '#4ADE80';
+  const say = useCallback(
+    (message) => {
+      setCoach(message);
+      if (ttsEnabled) speak(message.text);
+    },
+    [speak, ttsEnabled]
+  );
 
-  // Text-to-speech for level instructions
-  const speakInstructions = () => {
-    if (isSpeaking) {
-      stopSpeaking();
-      setIsSpeaking(false);
-      return;
-    }
-    
-    const instructionText = `
-      Level ${level.id}: ${level.title}. 
-      ${level.description}. 
-      Difficulty: ${level.difficulty}. 
-      Try to complete this level in ${level.maxMoves} moves or less to earn 3 stars.
-      ${level.hints && level.hints.length > 0 ? `Hint: ${level.hints[0]}` : ''}
-    `;
-    
-    speak(instructionText);
-    setIsSpeaking(true);
-    
-    // Reset speaking state when speech ends
-    if (typeof window !== 'undefined') {
-      window.speechSynthesis.onend = () => setIsSpeaking(false);
-    }
-  };
-
-  // Stop speaking when component unmounts or level changes
+  // First visit to level 1: explain how to play. Read storage after mount to avoid hydration mismatches.
   useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (level.id !== 1) return;
+    try {
+      if (!localStorage.getItem('kodo:seen-howto')) queueMicrotask(() => setShowHowTo(true));
+    } catch {}
   }, [level.id]);
 
-  const handleCodeGenerated = (commands) => {
-    // Reset to initial state
-    setCharacterPos(level.startPosition);
-    setDirection(level.startDirection);
-    setGameStatus('running');
-    setMoveCount(commands.length);
-    setMessage('Running...');
+  useEffect(() => () => stopSpeaking(), [level.id, stopSpeaking]);
 
-    // Start animation sequence
-    setTimeout(() => {
-      setAnimationCommands([...commands]);
-    }, 100);
+  const stop = () => {
+    runIdRef.current += 1;
+    boardRef.current?.reset();
+    editorRef.current?.highlight(null);
+    setStatus('idle');
   };
 
-  const handleAnimationComplete = async (success, finalPos) => {
-    setGameStatus('editing');
-    if (success) {
-      const starCount = moveCount <= level.maxMoves ? 3 : moveCount <= level.maxMoves + 5 ? 2 : 1;
-      const starDisplay = '★'.repeat(starCount);
-      setMessage(`🎉 Success! You reached the goal! ${starDisplay}`);
-      
-      // Save progress if user is logged in
-      if (user) {
-        await saveProgress(level.id, starCount, moveCount);
-      }
-      
-      // Show the completion modal
-      const newBest = !levelProgress?.best_moves || moveCount < levelProgress.best_moves;
-      setCompletionData({ stars: starCount, isNewBest: newBest });
-      setTimeout(() => {
-        setShowCompleteModal(true);
-      }, 500);
-    } else {
-      setMessage('Try again! The character did not reach the goal.');
+  const reset = () => {
+    stop();
+    setLastMissions(null);
+    say({ mood: 'happy', text: level.story });
+  };
+
+  const run = async () => {
+    if (status === 'running') {
+      stop();
+      say({ mood: 'happy', text: 'Stopped! Change your blocks and press Go again.' });
+      return;
     }
 
-    // Clear animation commands
-    setAnimationCommands([]);
+    const program = editorRef.current?.getProgram() || [];
+    if (program.length === 0) {
+      sfx.sad();
+      say(FEEDBACK.empty);
+      return;
+    }
+
+    const runId = ++runIdRef.current;
+    const result = runProgram(level, program);
+    const used = countBlocks(program);
+
+    setStatus('running');
+    setLastMissions(null);
+    say(FEEDBACK.running);
+
+    await boardRef.current.play(result.frames, {
+      speed: speed.value,
+      onFrame: (frame) => editorRef.current?.highlight(frame.id),
+    });
+    if (runId !== runIdRef.current) return; // stopped or reset while running
+
+    setStatus('done');
+    const score = scoreRun(level, result, used);
+    setLastMissions(score.missions);
+
+    if (result.outcome === 'win') {
+      editorRef.current?.highlight(null);
+      boardRef.current.celebrate();
+      sfx.win();
+      const missing = [];
+      if (!score.missions.berries) missing.push(`grab every berry`);
+      if (!score.missions.blocks) missing.push(`use ${level.parBlocks} blocks or fewer`);
+      say({
+        mood: 'cheer',
+        text: missing.length ? `Home! For more stars, try to ${missing.join(' and ')}.` : 'Home sweet home! A perfect solution!',
+      });
+      const isNewBest = !saved || score.stars > (saved.stars || 0);
+      saveProgress(level.id, score.stars, result.steps);
+      setTimeout(() => {
+        if (runId === runIdRef.current) setCompletion({ ...score, isNewBest, blocks: used, steps: result.steps });
+      }, 1100);
+    } else {
+      // Leave the block that caused a bump glowing so kids can see where it went wrong.
+      if (result.outcome !== 'bump') editorRef.current?.highlight(null);
+      if (result.outcome !== 'bump') sfx.sad();
+      say(FEEDBACK[result.outcome]);
+    }
   };
 
-  const resetGame = () => {
-    setCharacterPos(level.startPosition);
-    setDirection(level.startDirection);
-    setAnimationCommands([]);
-    setGameStatus('editing');
-    setMessage('');
-    setMoveCount(0);
+  const showHint = () => {
+    const next = (hintIndex + 1) % level.hints.length;
+    setHintIndex(next);
+    say({ mood: 'wow', text: `Hint ${next + 1} of ${level.hints.length}: ${level.hints[next]}` });
   };
+
+  const changeSpeed = () => {
+    const next = (speedIndex + 1) % SPEEDS.length;
+    setSpeedIndex(next);
+    boardRef.current?.setSpeed(SPEEDS[next].value);
+  };
+
+  const closeHowTo = useCallback(() => {
+    setShowHowTo(false);
+    try {
+      localStorage.setItem('kodo:seen-howto', 'true');
+    } catch {}
+  }, []);
+
+  const missions = [
+    { id: 'home', label: 'Get Kodo home' },
+    { id: 'berries', label: `Grab ${level.berries.length === 1 ? 'the berry' : `all ${level.berries.length} berries`}` },
+    { id: 'blocks', label: `Use ${level.parBlocks} blocks or fewer` },
+  ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#E8E4F0]">
-      {/* Accessibility Controls - Fixed Position */}
-      <div className="fixed bottom-4 right-4 md:right-20 z-50 flex gap-2">
-        {/* High Contrast Toggle */}
-        <button
-          onClick={toggleHighContrast}
-          className={`accessibility-toggle px-3 py-2 rounded-full font-medium text-sm flex items-center gap-2 shadow-lg ${
-            highContrast 
-              ? 'bg-yellow-400 text-black border-2 border-black' 
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Toggle High Contrast Mode (for color blindness)"
-          aria-label="Toggle high contrast mode"
+    <div className="flex min-h-dvh flex-col lg:h-dvh">
+      {/* ── HUD ─────────────────────────────────────────── */}
+      <header className="flex items-center gap-2 px-3 pt-3 sm:gap-3 sm:px-5">
+        <Link
+          href="/levels"
+          className="btn-chunky flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-paper px-3 font-display font-semibold sm:px-4"
+          aria-label="Back to the map"
         >
-          <span className="text-lg">👁️</span>
-          <span className="hidden sm:inline">{highContrast ? 'Normal' : 'High Contrast'}</span>
-        </button>
+          <ArrowLeftIcon />
+          <span className="hidden sm:inline">Map</span>
+        </Link>
 
-        {/* Text-to-Speech Toggle */}
-        <button
-          onClick={toggleTts}
-          className={`accessibility-toggle px-3 py-2 rounded-full font-medium text-sm flex items-center gap-2 shadow-lg ${
-            ttsEnabled 
-              ? 'bg-green-400 text-black border-2 border-black' 
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-          title="Toggle Text-to-Speech"
-          aria-label="Toggle text to speech"
-        >
-          <span className="text-lg">🔊</span>
-          <span className="hidden sm:inline">{ttsEnabled ? 'TTS On' : 'TTS Off'}</span>
-        </button>
-      </div>
-
-      {/* Header - with extra top padding to account for accessibility controls */}
-      <header className="bg-white/90 backdrop-blur-sm p-3 md:p-4 pt-16 sm:pt-4 border-b-3 border-black">
-        <div className="container mx-auto flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-3 md:gap-4">
-          <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
-            <Link
-              href="/levels"
-              className="px-3 md:px-4 py-2 border-3 border-black bg-[#E8E4F0] text-gray-700 rounded-full hover:bg-gray-200 font-medium flex items-center gap-2 text-sm md:text-base"
-            >
-              ← Levels
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span 
-                  className="px-2 md:px-3 py-1 text-xs font-bold rounded-full text-gray-900"
-                  style={{ backgroundColor: stageColor }}
-                >
-                  {stage?.name}
-                </span>
-                <h1 className="text-base md:text-xl font-bold text-gray-900 truncate">
-                  Level {level.id}: <span className="font-accent">{level.title}</span>
-                </h1>
-                {/* TTS Button for Instructions */}
-                {ttsEnabled && (
-                  <button
-                    onClick={speakInstructions}
-                    className={`p-2 rounded-full border-3 border-black ${isSpeaking ? 'bg-green-500 tts-speaking' : 'bg-gray-200 hover:bg-gray-300'}`}
-                    title="Listen to level instructions"
-                    aria-label="Listen to level instructions"
-                  >
-                    {isSpeaking ? '⏹️' : '🔈'}
-                  </button>
-                )}
-              </div>
-              <p className="text-xs md:text-sm text-gray-600 line-clamp-2 md:line-clamp-none">{level.description}</p>
-            </div>
-          </div>
-          <div className="flex gap-2 items-center flex-wrap w-full sm:w-auto justify-start sm:justify-end">
-            {levelProgress && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-[#FACC15]/20 rounded-full">
-                {[1, 2, 3].map((i) => (
-                  <span key={i} className={i <= levelProgress.stars ? 'text-[#FACC15]' : 'text-gray-300'}>
-                    ★
-                  </span>
-                ))}
-              </div>
-            )}
-            <span
-              className={`text-xs md:text-sm font-medium px-2 md:px-3 py-1 rounded-full ${
-                level.difficulty === 'Easy'
-                  ? 'bg-[#4ADE80]/20 text-[#166534]'
-                  : level.difficulty === 'Medium'
-                  ? 'bg-[#FACC15]/20 text-[#854D0E]'
-                  : level.difficulty === 'Expert'
-                  ? 'bg-[#A78BFA]/20 text-[#5B21B6]'
-                  : 'bg-[#F472B6]/20 text-[#9D174D]'
-              }`}
-            >
-              {level.difficulty}
-            </span>
-            <span className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-[#A78BFA]/20 rounded-full text-[#5B21B6]">
-              Moves: {moveCount}/{level.maxMoves}
-            </span>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-3 md:px-4 py-2 bg-[#A78BFA] text-white rounded-full hover:bg-[#8B5CF6] font-medium text-sm md:text-base"
-            >
-              Reset
-            </button>
-            {nextLevel && (
-              <Link
-                href={`/level/${nextLevel.id}`}
-                className="px-3 md:px-4 py-2 bg-[#4ADE80] text-gray-900 rounded-full hover:bg-[#22C55E] font-medium text-sm md:text-base"
-              >
-                Next →
-              </Link>
-            )}
+        <div className="card-sticker flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-1.5">
+          <span
+            className="hidden shrink-0 rounded-xl px-2.5 py-1 font-display text-sm font-semibold text-onfill sm:inline-block"
+            style={{ backgroundColor: stage.color }}
+          >
+            {stage.name} · {levelNumberInStage}/{stageLevels.length}
+          </span>
+          <h1 className="min-w-0 truncate text-lg font-bold sm:text-xl">
+            <span className="text-ink-soft">Level {level.id}:</span> {level.title}
+          </h1>
+          <div className="ml-auto hidden shrink-0 items-center gap-0.5 md:flex" aria-label={`Best: ${saved?.stars || 0} of 3 stars`}>
+            {[1, 2, 3].map((i) => (
+              <Star key={i} className="h-7 w-7" fill={i <= (saved?.stars || 0) ? 'var(--color-ink)' : 'var(--color-line)'} />
+            ))}
           </div>
         </div>
-      </header>
 
-      {/* Status Message */}
-      {message && (
-        <div
-          className={`p-3 text-center font-bold text-lg ${
-            message.includes('Success')
-              ? 'bg-[#4ADE80]/30 text-[#166534]'
-              : message.includes('Running')
-              ? 'bg-[#A78BFA]/30 text-[#5B21B6]'
-              : 'bg-[#FACC15]/30 text-[#854D0E]'
-          }`}
+        <button
+          type="button"
+          onClick={() => setShowHowTo(true)}
+          className="btn-chunky flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-paper font-display text-xl font-bold"
+          aria-label="How to play"
+          title="How to play"
         >
-          {message}
+          ?
+        </button>
+        <div className="hidden items-center gap-2 lg:flex">
+          <AccessibilityToggles compact />
         </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-auto md:overflow-hidden">
-        {/* Left Panel - Game Board */}
-        <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 md:p-8 bg-white ">
-          <div className="mb-4 text-center">
-            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Game Board</h2>
-            <p className="text-sm text-gray-600">
-              Use blocks to move the character to the goal!   
-            </p>
-          </div>
-          <GameBoard
-            grid={level.grid}
-            characterPos={characterPos}
-            direction={direction}
-            animationCommands={animationCommands}
-            onAnimationComplete={handleAnimationComplete}
-          />
-          <div className="mt-4 text-sm text-gray-500 flex gap-4">
-            <span className="flex items-center gap-1"><img src="/goal.png" alt="Start" className="w-6 h-6 rounded border border-gray-300" /> Start</span>
-            <span className="flex items-center gap-1"><img src="/path.png" alt="Goal" className="w-6 h-6 rounded border border-gray-300" /> Goal</span>
-            <span className="flex items-center gap-1"><img src="/obstacle.png" alt="Obstacle" className="w-6 h-6 rounded border border-gray-300" /> Obstacle</span>
-          </div>
-
-          {/* Hints Section */}
-          {level.hints && level.hints.length > 0 && (
-            <div className="mt-6 max-w-md">
-              <details className="bg-[#FACC15]/20 border-2 border-[#FACC15] rounded-2xl p-4">
-                <summary className="cursor-pointer font-bold text-[#854D0E]">
-                   Need a hint?
-                </summary>
-                <ul className="mt-3 space-y-2 text-sm text-gray-700">
-                  {level.hints.map((hint, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2">•</span>
-                      <span>{hint}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
+        <div className="relative lg:hidden">
+          <button
+            type="button"
+            onClick={() => setShowSettings((v) => !v)}
+            aria-expanded={showSettings}
+            aria-label="Settings"
+            className="btn-chunky flex h-12 w-12 items-center justify-center rounded-2xl bg-grape text-onfill"
+          >
+            <SlidersIcon />
+          </button>
+          {showSettings && (
+            <div className="card-sticker absolute right-0 top-14 z-50 flex flex-col gap-2 rounded-3xl p-3">
+              <AccessibilityToggles />
             </div>
           )}
         </div>
+      </header>
 
-        {/* Right Panel - Blockly Editor - Fixed height for proper rendering */}
-        <div className="w-full md:w-1/2 flex flex-col bg-[#E8E4F0] border-t-3 md:border-t-0 md:border-l-3 border-black" style={{ minHeight: '500px' }}>
-          <div className="p-3 md:p-4 bg-[#A78BFA]/20 border-b-3 border-black shrink-0">
-            <h2 className="text-xl md:text-3xl font-bold text-black mb-1">Block Editor!</h2>
-            <p className="text-sm text-gray-600">
-              Drag blocks from the left menu to create your solution
+      <main className="grid min-h-0 flex-1 gap-4 p-3 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        {/* ── Board side ────────────────────────────────── */}
+        <section className="card-sticker flex min-h-0 flex-col gap-3 rounded-[28px] p-3 sm:p-4" aria-label="Puzzle board">
+          <div className="flex items-start gap-3" aria-live="polite">
+            <Kodo className="h-16 w-16 shrink-0 animate-bob" mood={coach.mood} look="EAST" title="" aria-hidden="true" />
+            <p className="relative flex-1 rounded-2xl bg-cream px-4 py-2.5 font-semibold leading-snug before:absolute before:-left-[11px] before:top-5 before:h-4 before:w-4 before:rotate-45 before:border-b-2 before:border-l-2 before: before:bg-cream">
+              {coach.text}
             </p>
-            {level.maxBlocks && (
-              <p className="text-xs font-bold text-[#F472B6] mt-1 ">
-                ⚠️ Block limit: {level.maxBlocks} blocks maximum
-              </p>
-            )}
           </div>
-          {/* Blockly container with fixed height for proper rendering */}
-          <div style={{ height: '450px', width: '100%' }}>
-            <BlocklyEditor 
-              onCodeGenerated={handleCodeGenerated} 
+
+          <ul className="flex flex-wrap gap-2" aria-label="Missions">
+            {missions.map(({ id, label }, i) => {
+              const done = lastMissions?.[id];
+              const failed = lastMissions && !done;
+              return (
+                <li
+                  key={id}
+                  className={`flex items-center gap-2 rounded-full py-1 pl-1 pr-3.5 text-sm font-bold transition-colors ${
+                    done ? 'bg-leaf-soft' : failed ? 'bg-berry-soft text-ink-soft' : 'bg-cream'
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-display text-xs transition-colors ${
+                      done ? 'bg-leaf-deep text-paper' : 'bg-ink/10'
+                    }`}
+                  >
+                    {done ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
+                  </span>
+                  {label}
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="relative min-h-[260px] flex-1 sm:min-h-[320px]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <GameBoard ref={boardRef} level={level} scenery={stage.scenery} />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={run}
+              data-no-burst
+              className={`btn-chunky flex flex-1 items-center justify-center gap-2 rounded-[20px] py-3.5 font-display text-2xl font-bold text-onfill ${
+                status === 'running' ? 'bg-berry' : 'bg-leaf'
+              }`}
+            >
+              {status === 'running' ? <StopIcon className="h-7 w-7" /> : <PlayIcon className="h-7 w-7" />}
+              {status === 'running' ? 'Stop' : 'Go!'}
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              className="btn-chunky flex h-[60px] items-center gap-2 rounded-[20px] bg-paper px-4 font-display font-semibold"
+              aria-label="Put Kodo back at the start"
+            >
+              <ResetIcon className="h-6 w-6" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+            <button
+              type="button"
+              onClick={changeSpeed}
+              className="btn-chunky flex h-[60px] items-center gap-2 rounded-[20px] bg-sky px-4 font-display font-semibold text-onfill"
+              aria-label={`Speed: ${speed.label}. Click to change.`}
+            >
+              <speed.Icon className="h-6 w-6" />
+              <span className="hidden sm:inline">{speed.label}</span>
+            </button>
+          </div>
+        </section>
+
+        {/* ── Code side ─────────────────────────────────── */}
+        <section className="card-sticker flex min-h-[480px] flex-col overflow-hidden rounded-[28px] lg:min-h-0" aria-label="Code editor">
+          <div className="flex items-center gap-2 bg-sun-soft px-3 py-2.5 sm:px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <h2 className="shrink-0 text-xl font-bold">Your code</h2>
+              {level.newBlocks && (
+                <span
+                  className="truncate rounded-lg bg-berry px-2 py-0.5 font-display text-xs font-semibold text-onfill"
+                  title={`New: ${level.newBlocks.map((b) => BLOCK_NAMES[b]).join(' & ')}`}
+                >
+                  New: {level.newBlocks.map((b) => BLOCK_NAMES[b]).join(' & ')}
+                </span>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={`rounded-xl px-2.5 py-1 font-display text-sm font-semibold ${atLimit ? 'bg-berry text-onfill' : 'bg-paper'}`}
+                title={level.maxBlocks ? `This level allows ${level.maxBlocks} blocks` : undefined}
+              >
+                {blocksUsed}
+                {level.maxBlocks ? `/${level.maxBlocks}` : ''} <span className="hidden sm:inline">{blocksUsed === 1 ? 'block' : 'blocks'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={showHint}
+                className="btn-chunky flex h-10 items-center gap-1.5 rounded-xl bg-sun px-3 font-display text-sm font-semibold text-onfill"
+              >
+                <BulbIcon />
+                <span className="hidden sm:inline">Hint</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  stop();
+                  editorRef.current?.clear();
+                }}
+                className="btn-chunky flex h-10 w-10 items-center justify-center rounded-xl bg-cream"
+                aria-label="Remove all blocks"
+                title="Remove all blocks"
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          </div>
+
+          <div className="relative min-h-0 flex-1">
+            <BlocklyEditor
+              ref={editorRef}
+              levelId={level.id}
               availableBlocks={level.availableBlocks}
               maxBlocks={level.maxBlocks}
+              onChange={setBlocksUsed}
             />
+            {status === 'running' && (
+              <div className="absolute inset-0 z-10 cursor-not-allowed" title="Press Stop to change your code">
+                <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-xl bg-paper px-3 py-1 font-display text-sm font-semibold">
+                  Kodo is walking… press Stop to edit
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="bg-white/80 p-3 text-center text-sm text-gray-600 shrink-0">
-        <p>💡 Tip: Try to solve the puzzle in {level.maxMoves} moves or less for 3 stars!</p>
-      </footer>
-
-      {/* Level Complete Modal */}
       <LevelCompleteModal
-        isOpen={showCompleteModal}
-        onClose={() => setShowCompleteModal(false)}
-        stars={completionData.stars}
-        moveCount={moveCount}
-        optimalMoves={level.maxMoves}
-        isNewBest={completionData.isNewBest}
+        isOpen={!!completion}
+        onClose={() => setCompletion(null)}
+        level={level}
+        result={completion}
         isLoggedIn={!!user}
         nextLevelId={nextLevel?.id}
-        currentLevelId={level.id}
+        onReplay={() => {
+          setCompletion(null);
+          reset();
+        }}
       />
 
-      {/* Tutorial Video Modal for Level 1 */}
-      {showTutorial && (
-        <div className="fixed inset-0 bg-black/70 z-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-3xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-linear-to-r from-[#A78BFA] to-[#F472B6] p-4 border-b-4 border-black">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🎬</span>
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white">Welcome to Kodo!</h2>
-                    <p className="text-white/90 text-sm">Watch this quick tutorial to get started</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowTutorial(false);
-                    localStorage.setItem('hasSeenTutorial', 'true');
-                  }}
-                  className="w-10 h-10 bg-white rounded-full border-3 border-black flex items-center justify-center hover:bg-gray-100 transition-colors"
-                  aria-label="Close tutorial"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+      {showHowTo && <HowToPlay onClose={closeHowTo} />}
 
-            {/* Video Player */}
-            <div className="p-4 md:p-6">
-              <div className="relative bg-black rounded-2xl overflow-hidden border-3 border-black aspect-video">
-                <video
-                  src="/tutorial.mp4"
-                  controls
-                  autoPlay
-                  className="w-full h-full"
-                  playsInline
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-
-              {/* Tutorial Tips */}
-              <div className="mt-4 bg-[#FACC15]/20 rounded-xl p-4 border-2 border-[#FACC15]">
-                <h3 className="font-bold text-[#854D0E] mb-2 flex items-center gap-2">
-                  <span>💡</span> Quick Tips
-                </h3>
-                <ul className="text-sm text-gray-700 space-y-1">
-                  <li>• Drag blocks from the left menu to the workspace</li>
-                  <li>• Connect blocks together to create a sequence</li>
-                  <li>• Click &quot;Run Code&quot; to see your character move</li>
-                  <li>• Try to reach the goal in as few moves as possible!</li>
-                </ul>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  onClick={() => {
-                    setShowTutorial(false);
-                    localStorage.setItem('hasSeenTutorial', 'true');
-                  }}
-                  className="px-6 py-3 bg-[#4ADE80] text-black font-bold rounded-full border-3 border-black hover:bg-[#22C55E] transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5"
-                >
-                  🎮 Start Playing!
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('hasSeenTutorial');
-                    setShowTutorial(false);
-                  }}
-                  className="px-6 py-3 bg-white text-gray-700 font-medium rounded-full border-3 border-black hover:bg-gray-100 transition-colors"
-                >
-                  Show tutorial next time
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tutorial Button for Level 1 (if user closed the modal and wants to rewatch) */}
-      {level.id === 1 && !showTutorial && (
-        <button
-          onClick={() => setShowTutorial(true)}
-          className="fixed bottom-4 left-4 z-50 px-4 py-2 bg-[#A78BFA] text-white font-bold rounded-full border-3 border-black hover:bg-[#8B5CF6] transition-colors shadow-lg flex items-center gap-2"
-          title="Watch tutorial video"
-        >
-          <span>🎬</span>
-          <span className="hidden sm:inline">Tutorial</span>
-        </button>
-      )}
     </div>
   );
 }

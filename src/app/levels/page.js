@@ -7,12 +7,13 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import Kodo from '@/components/brand/Kodo';
+import { Zip } from '@/components/brand/Crew';
 import Blob from '@/components/brand/Blobs';
 import { Cloud, Cottage, Flower, Star, Sun } from '@/components/brand/Stickers';
 import { Obstacle } from '@/components/game/BoardArt';
 import FunButton from '@/components/ui/FunButton';
-import { LockIcon, PlayIcon } from '@/components/ui/Icons';
-import { levels, stages, getLevelsByStage, isLevelUnlocked } from '@/data/levels';
+import { ArrowRightIcon, LockIcon, PlayIcon } from '@/components/ui/Icons';
+import { levels, kidStages, advancedStages, getLevelsByStage, isLevelUnlocked, TRAIL_START } from '@/data/levels';
 import { useProgress } from '@/hooks/useProgress';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -70,6 +71,7 @@ function LevelStop({ level, x, y, state, stars, color }) {
 
   return (
     <div className="map-stop absolute -translate-x-1/2 -translate-y-1/2" style={style}>
+      {/* "open" stops are unlocked but not where the player is up to (like the start of the Grown-up Trail). */}
       {state === 'current' && (
         <>
           <span className="absolute inset-0 animate-pulse-ring rounded-full border-4 border-ink/40" aria-hidden="true" />
@@ -106,12 +108,70 @@ function LevelStop({ level, x, y, state, stars, color }) {
   );
 }
 
+function Land({ stage, stageIndex, label, progress, loading, current }) {
+  const stageLevels = getLevelsByStage(stage.id);
+  const doneHere = stageLevels.filter((l) => progress[l.id]?.completed).length;
+  const starsHere = stageLevels.reduce((sum, l) => sum + (progress[l.id]?.stars || 0), 0);
+  const points = stageLevels.map((_, i) => ({ x: WAVE[i % WAVE.length], y: TOP + i * STEP_Y }));
+  const height = TOP + stageLevels.length * STEP_Y;
+
+  return (
+    <section className="relative mt-10" aria-labelledby={`land-${stage.id}`}>
+      <div className="land-banner card-sticker relative z-10 flex flex-col gap-4 overflow-hidden rounded-[30px] p-5 sm:flex-row sm:items-center sm:p-6">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-cream" aria-hidden="true">
+          <Blob shape={stage.shape} color={stage.deep} face={stage.shape !== 'loop'} className="h-12 w-12 transition-transform duration-500 hover:rotate-45" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-semibold uppercase tracking-wider text-ink-soft">
+            {label} · {stage.concept}
+          </p>
+          <h2 id={`land-${stage.id}`} className="text-3xl font-bold">{stage.name}</h2>
+          <p className="mt-1 font-semibold text-ink-soft">{stage.description}</p>
+        </div>
+        <div className="shrink-0 text-left sm:text-right">
+          <p className="font-display text-lg font-semibold">{doneHere}/{stageLevels.length} done</p>
+          <p className="flex items-center gap-1 font-display font-semibold text-ink-soft sm:justify-end">
+            <Star className="h-5 w-5" /> {starsHere}/{stageLevels.length * 3}
+          </p>
+          <div className="mt-2 h-3 w-40 overflow-hidden rounded-full bg-cream">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(doneHere / stageLevels.length) * 100}%`, backgroundColor: stage.color }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mx-auto max-w-xl" style={{ height }}>
+        <Trail points={points} height={height} />
+        {!loading &&
+          stageLevels.map((level, i) => {
+            const p = progress[level.id];
+            const state = p?.completed ? 'done' : !isLevelUnlocked(level.id, progress) ? 'locked' : level.id === current.id ? 'current' : 'open';
+            return (
+              <div key={level.id} id={`stop-${level.id}`}>
+                <LevelStop level={level} x={points[i].x} y={points[i].y} state={state} stars={p?.stars || 0} color={stage.color} />
+              </div>
+            );
+          })}
+
+        {/* Scenery along the trail on wide screens */}
+        <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 1} className="absolute -left-40 top-24 hidden h-28 w-28 lg:block" />
+        <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 2} className="absolute -right-36 top-64 hidden h-24 w-24 lg:block" />
+        <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 3} className="absolute -left-28 top-[440px] hidden h-20 w-20 lg:block" />
+        {stageIndex === 0 && <Sun className="absolute -right-44 top-6 hidden h-24 w-24 animate-spin-slow lg:block" />}
+        {stageIndex === 1 && <Cloud className="absolute -right-48 top-8 hidden h-20 w-36 animate-float lg:block" />}
+        {stageIndex === 2 && <Flower className="absolute -right-36 top-[480px] hidden h-14 w-14 animate-wiggle lg:block" />}
+      </div>
+    </section>
+  );
+}
+
 export default function LevelsPage() {
   const { progress, totalStars, loading } = useProgress();
   const rootRef = useRef(null);
 
   const completed = levels.filter((l) => progress[l.id]?.completed).length;
-  const current = levels.find((l) => !progress[l.id]?.completed && isLevelUnlocked(l.id, progress)) || levels[levels.length - 1];
+  const onTrail = levels.some((l) => l.id >= TRAIL_START && progress[l.id]?.completed);
+  const order = onTrail ? [...levels.filter((l) => l.id >= TRAIL_START), ...levels.filter((l) => l.id < TRAIL_START)] : levels;
+  const current = order.find((l) => !progress[l.id]?.completed && isLevelUnlocked(l.id, progress)) || levels[levels.length - 1];
 
   useEffect(() => {
     if (loading) return;
@@ -122,7 +182,7 @@ export default function LevelsPage() {
         onEnter: (batch) =>
           gsap.fromTo(batch, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, stagger: 0.08, duration: 0.6, ease: 'back.out(2)', overwrite: true }),
       });
-      gsap.utils.toArray('.land-banner').forEach((el) => {
+      gsap.utils.toArray('.land-banner, .trail-intro').forEach((el) => {
         gsap.from(el, { y: 50, rotate: -2, opacity: 0, duration: 0.7, ease: 'back.out(1.6)', scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
       });
     }, rootRef);
@@ -157,65 +217,51 @@ export default function LevelsPage() {
       </section>
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        {stages.map((stage, stageIndex) => {
-          const stageLevels = getLevelsByStage(stage.id);
-          const doneHere = stageLevels.filter((l) => progress[l.id]?.completed).length;
-          const starsHere = stageLevels.reduce((sum, l) => sum + (progress[l.id]?.stars || 0), 0);
-          const points = stageLevels.map((_, i) => ({ x: WAVE[i % WAVE.length], y: TOP + i * STEP_Y }));
-          const height = TOP + stageLevels.length * STEP_Y;
-
-          return (
-            <section key={stage.id} className="relative mt-10" aria-labelledby={`land-${stage.id}`}>
-              <div className="land-banner card-sticker relative z-10 flex flex-col gap-4 overflow-hidden rounded-[30px] p-5 sm:flex-row sm:items-center sm:p-6">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-cream" aria-hidden="true">
-                  <Blob shape={stage.shape} color={stage.deep} face={stage.shape !== 'loop'} className="h-12 w-12 transition-transform duration-500 hover:rotate-45" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-sm font-semibold uppercase tracking-wider text-ink-soft">
-                    Land {stageIndex + 1} · {stage.concept}
-                  </p>
-                  <h2 id={`land-${stage.id}`} className="text-3xl font-bold">{stage.name}</h2>
-                  <p className="mt-1 font-semibold text-ink-soft">{stage.description}</p>
-                </div>
-                <div className="shrink-0 text-left sm:text-right">
-                  <p className="font-display text-lg font-semibold">{doneHere}/{stageLevels.length} done</p>
-                  <p className="flex items-center gap-1 font-display font-semibold text-ink-soft sm:justify-end">
-                    <Star className="h-5 w-5" /> {starsHere}/{stageLevels.length * 3}
-                  </p>
-                  <div className="mt-2 h-3 w-40 overflow-hidden rounded-full bg-cream">
-                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(doneHere / stageLevels.length) * 100}%`, backgroundColor: stage.color }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative mx-auto max-w-xl" style={{ height }}>
-                <Trail points={points} height={height} />
-                {!loading &&
-                  stageLevels.map((level, i) => {
-                    const p = progress[level.id];
-                    const state = p?.completed ? 'done' : !isLevelUnlocked(level.id, progress) ? 'locked' : 'current';
-                    return (
-                      <div key={level.id} id={`stop-${level.id}`}>
-                        <LevelStop level={level} x={points[i].x} y={points[i].y} state={state} stars={p?.stars || 0} color={stage.color} />
-                      </div>
-                    );
-                  })}
-
-                {/* Scenery along the trail on wide screens */}
-                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 1} className="absolute -left-40 top-24 hidden h-28 w-28 lg:block" />
-                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 2} className="absolute -right-36 top-64 hidden h-24 w-24 lg:block" />
-                <SceneryBit scenery={stage.scenery} salt={stageIndex * 7 + 3} className="absolute -left-28 top-[440px] hidden h-20 w-20 lg:block" />
-                {stageIndex === 0 && <Sun className="absolute -right-44 top-6 hidden h-24 w-24 animate-spin-slow lg:block" />}
-                {stageIndex === 1 && <Cloud className="absolute -right-48 top-8 hidden h-20 w-36 animate-float lg:block" />}
-                {stageIndex === 2 && <Flower className="absolute -right-36 top-[480px] hidden h-14 w-14 animate-wiggle lg:block" />}
-              </div>
-            </section>
-          );
-        })}
+        {kidStages.map((stage, stageIndex) => (
+          <Land key={stage.id} stage={stage} stageIndex={stageIndex} label={`Land ${stageIndex + 1}`} progress={progress} loading={loading} current={current} />
+        ))}
 
         <div className="flex flex-col items-center pt-2">
           <Cottage className="h-36 w-36" />
           <p className="headline text-4xl">Home!</p>
+        </div>
+
+        {/* ── The Grown-up Trail ─────────────────────────── */}
+        <section id="trail" className="trail-intro relative mt-24 scroll-mt-28 overflow-hidden rounded-[36px] bg-ink p-6 text-paper sm:p-10" aria-labelledby="trail-title">
+          <Blob shape="sparkle" color="var(--color-sun)" className="absolute right-8 top-8 h-8 w-8 animate-spin-slow" />
+          <Blob shape="flower" color="var(--color-peach)" className="absolute -bottom-10 -right-10 h-40 w-40 animate-spin-slow" />
+          <p className="font-display text-2xl text-sun">for teens &amp; grown-ups</p>
+          <h2 id="trail-title" className="headline mt-1 text-5xl text-paper sm:text-6xl">
+            The Grown-up Trail
+          </h2>
+          <p className="relative mt-3 max-w-xl text-lg font-semibold text-paper/80">
+            Ten tougher puzzles past Kodo&apos;s house: tricks (functions), recursion, a berry sensor and a counter (a variable), with tight block budgets.
+            Already comfortable with loops and if/else?
+          </p>
+          <div className="relative mt-6 flex flex-wrap items-center gap-3">
+            <FunButton href={`/level/${TRAIL_START}`} color="sun" size="lg" icon={<PlayIcon />}>
+              Yes, start from here
+            </FunButton>
+            <a href="#land-simple" className="group flex items-center gap-1 font-display text-lg text-paper/80 hover:text-sun">
+              Start at the beginning <ArrowRightIcon className="h-5 w-5 -rotate-90 transition-transform group-hover:-translate-y-1" />
+            </a>
+          </div>
+          <div className="relative mt-8 flex max-w-xl items-start gap-3 rounded-2xl bg-paper/10 p-4">
+            <Zip className="h-12 w-12 shrink-0" mood="wink" shadow={false} title="" />
+            <p className="font-semibold text-paper/85">
+              <span className="block font-display text-sun">Zip</span>
+              Stuck on one? Every level here has hints, and links back to the kids&apos; levels that build up the same idea.
+            </p>
+          </div>
+        </section>
+
+        {advancedStages.map((stage, i) => (
+          <Land key={stage.id} stage={stage} stageIndex={kidStages.length + i} label={`Trail ${i + 1}`} progress={progress} loading={loading} current={current} />
+        ))}
+
+        <div className="flex flex-col items-center pt-2">
+          <Star className="h-24 w-24 animate-spin-slow" />
+          <p className="headline text-4xl">Trail complete!</p>
         </div>
       </div>
 

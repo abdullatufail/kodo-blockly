@@ -21,7 +21,15 @@ const ICON = {
   repeat: icon('<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>'),
   home: icon('<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>'),
   peek: icon('<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"/><circle cx="12" cy="12" r="2.6" fill="' + INK + '"/>'),
+  trick: icon('<path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'),
+  berry: icon('<circle cx="12" cy="14" r="6.5"/><path d="M12 7.5c0-2.5 1.5-4 4-4.5"/>'),
+  count: icon('<path d="M9 4 7 20"/><path d="M17 4l-2 16"/><path d="M4 9h16"/><path d="M3 15h16"/>'),
 };
+
+const TRICKS = [
+  ['trick A', 'A'],
+  ['trick B', 'B'],
+];
 
 const DIRECTIONS = [
   ['ahead', 'AHEAD'],
@@ -37,6 +45,8 @@ const STYLES = {
   loop_blocks: { colourPrimary: '#ffd43b', colourSecondary: '#fff1b8', colourTertiary: '#ffd43b' },
   while_blocks: { colourPrimary: '#f58b4c', colourSecondary: '#fdd9c3', colourTertiary: '#f58b4c' },
   logic_blocks: { colourPrimary: '#c8b8f2', colourSecondary: '#eee8fd', colourTertiary: '#c8b8f2' },
+  trick_blocks: { colourPrimary: '#b3d860', colourSecondary: '#e2f5b0', colourTertiary: '#b3d860', hat: 'cap' },
+  count_blocks: { colourPrimary: '#dcc38a', colourSecondary: '#f6e8c4', colourTertiary: '#dcc38a' },
 };
 
 const img = (src, size = 22) => new Blockly.FieldImage(src, size, size, '');
@@ -98,6 +108,35 @@ function defineBlocks() {
     b.appendDummyInput().appendField('else');
     b.appendStatementInput('ELSE');
   });
+
+  // Tricks are Kodo's functions: a named stack that floats on its own, and a block that runs it.
+  Blockly.Blocks.define_trick = {
+    init() {
+      this.appendDummyInput().appendField(img(ICON.trick)).appendField('to do').appendField(new Blockly.FieldDropdown(TRICKS), 'NAME');
+      this.appendStatementInput('DO');
+      this.setStyle('trick_blocks');
+      this.setTooltip('Teach Kodo a trick. The blocks inside only run when a "do trick" block asks for them.');
+    },
+  };
+  Blockly.Blocks.call_trick = statement('trick_blocks', 'Kodo does every block inside the matching "to do trick" block.', (b) =>
+    b.appendDummyInput().appendField(img(ICON.trick)).appendField('do').appendField(new Blockly.FieldDropdown(TRICKS), 'NAME')
+  );
+  Blockly.Blocks.if_berry = statement('logic_blocks', 'Only do the blocks inside if there is a berry on the square that way.', (b) => {
+    b.appendDummyInput().appendField(img(ICON.berry)).appendField('if berry').appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
+    b.appendStatementInput('DO');
+  });
+
+  // One counter (a variable) that Kodo can set, change and use as a repeat number.
+  Blockly.Blocks.set_count = statement('count_blocks', 'Put a number in the counter.', (b) =>
+    b.appendDummyInput().appendField(img(ICON.count)).appendField('set count to').appendField(new Blockly.FieldNumber(1, 0, 20, 1), 'VALUE')
+  );
+  Blockly.Blocks.change_count = statement('count_blocks', 'Add to the counter. Use a minus number to take away.', (b) =>
+    b.appendDummyInput().appendField(img(ICON.count)).appendField('change count by').appendField(new Blockly.FieldNumber(1, -10, 10, 1), 'VALUE')
+  );
+  Blockly.Blocks.repeat_count = statement('count_blocks', 'Do the blocks inside as many times as the counter says right now.', (b) => {
+    b.appendDummyInput().appendField(img(ICON.repeat)).appendField('repeat count times');
+    b.appendStatementInput('DO');
+  });
 }
 
 let theme = null;
@@ -154,6 +193,21 @@ function stackToProgram(block) {
         break;
       case 'if_else_path':
         out.push({ type: 'if', cond: b.getFieldValue('DIR'), body: body('DO'), elseBody: body('ELSE'), id: b.id });
+        break;
+      case 'if_berry':
+        out.push({ type: 'ifBerry', cond: b.getFieldValue('DIR'), body: body('DO'), elseBody: [], id: b.id });
+        break;
+      case 'call_trick':
+        out.push({ type: 'call', name: b.getFieldValue('NAME'), id: b.id });
+        break;
+      case 'set_count':
+        out.push({ type: 'setCount', value: Number(b.getFieldValue('VALUE')) || 0, id: b.id });
+        break;
+      case 'change_count':
+        out.push({ type: 'changeCount', value: Number(b.getFieldValue('VALUE')) || 0, id: b.id });
+        break;
+      case 'repeat_count':
+        out.push({ type: 'repeatCount', body: body('DO'), id: b.id });
         break;
       default:
         break;
@@ -218,9 +272,9 @@ export default function BlocklyEditor({ levelId, availableBlocks, maxBlocks, onC
     // Blocks not attached to the Go block are greyed out and ignored.
     workspace.addChangeListener(Blockly.Events.disableOrphans);
 
+    // Every enabled block counts, trick definitions included (loose blocks are disabled).
     const report = () => {
-      const start = workspace.getBlocksByType('when_run', false)[0];
-      const used = start ? start.getDescendants(false).filter((b) => b.isEnabled()).length - 1 : 0;
+      const used = workspace.getAllBlocks(false).filter((b) => b.type !== 'when_run' && b.isEnabled()).length;
       onChangeRef.current?.(used);
     };
     report();
@@ -251,7 +305,11 @@ export default function BlocklyEditor({ levelId, availableBlocks, maxBlocks, onC
       const workspace = workspaceRef.current;
       if (!workspace) return [];
       const start = workspace.getBlocksByType('when_run', false)[0];
-      return start ? stackToProgram(start.getNextBlock()) : [];
+      const tricks = workspace
+        .getBlocksByType('define_trick', false)
+        .filter((b) => b.isEnabled())
+        .map((b) => ({ type: 'define', name: b.getFieldValue('NAME'), body: stackToProgram(b.getInputTargetBlock('DO')), id: b.id }));
+      return [...tricks, ...(start ? stackToProgram(start.getNextBlock()) : [])];
     },
     highlight(id) {
       workspaceRef.current?.highlightBlock(id || null);

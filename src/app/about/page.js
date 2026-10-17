@@ -30,7 +30,7 @@ const ACCESS = [
   { icon: 'keyboard', title: 'Keyboard friendly', text: 'Menus, buttons and the map work with the keyboard and show clear focus.', color: 'var(--color-leaf)' },
   { icon: 'ear', title: 'Screen readers', text: 'The board, buttons and missions carry labels that explain what is going on.', color: 'var(--color-berry)' },
   { icon: 'blocks', title: 'No typing', text: 'Drag-and-drop blocks with colours and shapes remove spelling and syntax worries.', color: 'var(--color-grape)' },
-  { icon: 'bars', title: 'Gentle steps', text: 'Twenty puzzles over four lands, with hints whenever someone gets stuck.', color: 'var(--color-lime)' },
+  { icon: 'bars', title: 'Gentle steps', text: 'Thirty puzzles over six lands, from first hops to a tougher trail for teens and grown-ups, with hints whenever someone gets stuck.', color: 'var(--color-lime)' },
 ];
 
 export default function AboutPage() {

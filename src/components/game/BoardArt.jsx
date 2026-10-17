@@ -140,6 +140,8 @@ const SCENERY = {
   meadow: [Rock, Flowers, Rock, Mushroom],
   woods: [PineTree, RoundTree, PineTree, Mushroom],
   hills: [RoundTree, Rock, Bush, Flowers],
+  ridge: [PineTree, Rock, PineTree, Rock],
+  caves: [Rock, Mushroom, Rock, Rock],
 };
 
 export function Obstacle({ x, y, scenery, salt }) {

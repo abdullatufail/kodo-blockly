@@ -23,11 +23,13 @@ const COLOR = {
   loop: 'var(--color-sun)',
   while: 'var(--color-peach)',
   logic: 'var(--color-grape)',
+  trick: 'var(--color-lime-deep)',
+  count: 'var(--color-sand-deep)',
 };
 const MOVE = { label: 'move forward', icon: 'move', color: COLOR.move };
 const TURN_RIGHT = { label: 'turn right', icon: 'right', color: COLOR.turn };
 
-// map: . path   # bush   H home   T path that a bush pops onto halfway through
+// map: . path   # bush   H home   T path that a bush pops onto halfway through   B path with a berry
 const BLOCKS = {
   move_forward: {
     ...MOVE,
@@ -168,6 +170,119 @@ const BLOCKS = {
       d.wait(0.5);
     },
   },
+  define_trick: {
+    label: 'to do trick A',
+    icon: 'trick',
+    color: COLOR.trick,
+    inner: [MOVE, TURN_RIGHT],
+    title: 'To do trick',
+    text: 'Teaches Kodo a trick: a bundle of blocks with a name. It sits on its own, anywhere on the canvas, and waits until a “do trick” block asks for it.',
+    scene: { map: ['..', '..'], start: [0, 0, 'EAST'] },
+    play: (d) => {
+      d.part('outer');
+      d.part('inner0');
+      d.hop(1, 0);
+      d.part('inner1');
+      d.turn('SOUTH');
+      d.wait(0.5);
+    },
+  },
+  call_trick: {
+    label: 'do trick A',
+    icon: 'trick',
+    color: COLOR.trick,
+    title: 'Do trick',
+    text: 'Runs every block inside “to do trick A”, then carries on. Say it as often as you like: write the steps once, use them everywhere.',
+    scene: { map: ['..', '..'], start: [0, 0, 'EAST'] },
+    play: (d) => {
+      d.part('outer');
+      d.hop(1, 0);
+      d.turn('SOUTH');
+      d.part(null);
+      d.wait(0.2);
+      d.part('outer');
+      d.hop(1, 1);
+      d.turn('WEST');
+      d.wait(0.5);
+    },
+  },
+  if_berry: {
+    label: 'if berry to the right',
+    icon: 'berry',
+    color: COLOR.logic,
+    inner: [TURN_RIGHT],
+    title: 'If berry',
+    text: 'Kodo sniffs the square next to it. Only if a berry is still there does it do the blocks inside. Pick ahead, left or right.',
+    scene: { map: ['.#', 'B.'], start: [0, 0, 'EAST'] },
+    play: (d) => {
+      d.part('outer');
+      d.peek(0, 1, true);
+      d.part('inner0');
+      d.turn('SOUTH');
+      d.part(null);
+      d.hop(0, 1);
+      d.eat(0, 1);
+      d.wait(0.4);
+      d.restart();
+      d.part('outer');
+      d.peek(0, 1, false);
+      d.part(null);
+      d.wait(0.4);
+    },
+  },
+  set_count: {
+    label: 'set count to 3',
+    icon: 'count',
+    color: COLOR.count,
+    title: 'Set count',
+    text: 'Kodo has a counter, a little box that holds one number. This block puts a number in it, and the counter remembers it until you change it.',
+    showValue: true,
+    scene: { map: ['...'], start: [1, 0, 'EAST'] },
+    play: (d) => {
+      d.part('outer');
+      d.value(3);
+      d.wait(1);
+    },
+  },
+  change_count: {
+    label: 'change count by 1',
+    icon: 'count',
+    color: COLOR.count,
+    title: 'Change count',
+    text: 'Adds to the counter. A minus number takes away instead. Perfect for paths that get a bit longer (or shorter) each time.',
+    showValue: true,
+    startValue: 1,
+    scene: { map: ['...'], start: [1, 0, 'EAST'] },
+    play: (d) => {
+      d.part('outer');
+      d.value(2);
+      d.part(null);
+      d.part('outer');
+      d.value(3);
+      d.wait(0.6);
+    },
+  },
+  repeat_count: {
+    label: 'repeat count times',
+    icon: 'repeat',
+    color: COLOR.count,
+    inner: [MOVE],
+    title: 'Repeat count times',
+    text: 'Like repeat, but the number comes from the counter. Here the counter says 3, so Kodo hops 3 times. Change the counter and the loop changes too.',
+    showValue: true,
+    startValue: 3,
+    counter: 3,
+    scene: { map: ['....'], start: [0, 0, 'EAST'] },
+    play: (d) => {
+      [1, 2, 3].forEach((n) => {
+        d.part('outer');
+        d.count(n);
+        d.part('inner0');
+        d.hop(n, 0);
+      });
+      d.wait(0.5);
+    },
+  },
 };
 
 export const BLOCK_INTROS = BLOCKS;
@@ -178,6 +293,9 @@ const ICON_PATHS = {
   right: <><path d="m15 14 5-5-5-5" /><path d="M20 9h-9a6 6 0 0 0 0 12h1" /></>,
   repeat: <><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></>,
   peek: <><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" /><circle cx="12" cy="12" r="2.6" fill="currentColor" /></>,
+  trick: <path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z" />,
+  berry: <><circle cx="12" cy="14" r="6.5" /><path d="M12 7.5c0-2.5 1.5-4 4-4.5" /></>,
+  count: <><path d="M9 4 7 20" /><path d="M17 4l-2 16" /><path d="M4 9h16" /><path d="M3 15h16" /></>,
 };
 
 function BlockIcon({ name }) {
@@ -227,6 +345,16 @@ function Replica({ block }) {
   );
 }
 
+function DemoBerry() {
+  return (
+    <g>
+      <circle cx="0" cy="3" r="11" fill="var(--color-berry-deep)" />
+      <circle cx="-3.5" cy="-0.5" r="3" fill="var(--color-paper)" opacity="0.6" />
+      <path d="M0 -8 q3 -6 9 -6" fill="none" stroke="var(--color-leaf-deep)" strokeWidth="3" strokeLinecap="round" />
+    </g>
+  );
+}
+
 function DemoBush() {
   return (
     <g>
@@ -257,6 +385,8 @@ function Demo({ type }) {
     const [toggle] = q('.dtoggle');
     const [home] = q('.dhome');
     const counts = q('.dcount');
+    const berries = q('.dberry');
+    const [valueBox] = q('.dvalue');
     // Block parts live just outside the svg, in the card.
     const parts = gsap.utils.toArray('[data-part]', root.closest('[data-intro]'));
     const setPart = (id) => parts.forEach((p) => (p.dataset.active = String(p.dataset.part === id)));
@@ -298,16 +428,26 @@ function Demo({ type }) {
             .to(home, { scaleX: 1.08, scaleY: 0.92, duration: 0.14, yoyo: true, repeat: 3, transformOrigin: '50% 100%' })
             .to(hop, { y: -18, duration: 0.14, yoyo: true, repeat: 3 }, '<')
             .to({}, { duration: 0.3 }),
+        eat: (x, y) => tl.to(q(`.dberry-${x}-${y}`), { scale: 0, rotation: 40, duration: 0.3, ease: 'back.in(2)', transformOrigin: '50% 50%' }, '-=0.25'),
+        value: (n) =>
+          tl
+            .call(() => {
+              if (valueBox) valueBox.textContent = String(n);
+            })
+            .fromTo(valueBox, { scale: 0.4, rotation: -12 }, { scale: 1, rotation: 0, duration: 0.45, ease: 'back.out(3)' }),
         restart: () => {
           tl.to(walker, { opacity: 0, duration: 0.2 });
           begin();
         },
       };
 
-      tl.set(toggle, { scale: 0 }).call(() => {
-        setPart(null);
-        counts.forEach((c) => (c.dataset.on = 'false'));
-      });
+      tl.set(toggle, { scale: 0 })
+        .set(berries, { scale: 1, rotation: 0 })
+        .call(() => {
+          setPart(null);
+          counts.forEach((c) => (c.dataset.on = 'false'));
+          if (valueBox) valueBox.textContent = block.startValue ?? '–';
+        });
       begin();
       d.wait(0.5);
       block.play(d);
@@ -334,6 +474,13 @@ function Demo({ type }) {
             <g transform={`translate(${cx} ${cy})`}>
               <g className="dtoggle" style={{ transform: 'scale(0)' }}>
                 <DemoBush />
+              </g>
+            </g>
+          )}
+          {ch === 'B' && (
+            <g transform={`translate(${cx} ${cy})`}>
+              <g className={`dberry dberry-${x}-${y}`}>
+                <DemoBerry />
               </g>
             </g>
           )}
@@ -367,6 +514,12 @@ function Demo({ type }) {
           </g>
         </g>
       </svg>
+      {block.showValue && (
+        <div className="flex items-center gap-2 rounded-2xl bg-sand px-3 py-1.5 font-display text-xl" aria-hidden="true">
+          count
+          <span className="dvalue inline-block min-w-[2ch] rounded-lg bg-paper px-2 text-center">{block.startValue ?? '–'}</span>
+        </div>
+      )}
       {block.counter && (
         <div className="flex gap-2" aria-hidden="true">
           {Array.from({ length: block.counter }, (_, i) => (

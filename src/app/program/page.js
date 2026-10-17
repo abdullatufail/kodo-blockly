@@ -24,7 +24,14 @@ const TABS = [
   { id: 'contribute', label: 'Help out', icon: 'heart', color: 'var(--color-berry)' },
 ];
 
-const LAND_ACCENT = { simple: 'var(--color-sun)', loops: 'var(--color-lime)', conditions: 'var(--color-lime)', combined: 'var(--color-sun)' };
+const LAND_ACCENT = {
+  simple: 'var(--color-sun)',
+  loops: 'var(--color-lime)',
+  conditions: 'var(--color-lime)',
+  combined: 'var(--color-sun)',
+  functions: 'var(--color-sun)',
+  variables: 'var(--color-peach)',
+};
 
 function SectionTitle({ eyebrow, title, color = 'text-leaf-deep', children }) {
   return (
@@ -52,8 +59,9 @@ function Curriculum() {
   return (
     <div className="space-y-20">
       <div>
-        <SectionTitle eyebrow="the learning path" title="Four lands, one big idea each">
-          Kodo grows with your child. Every land introduces one new programming idea and keeps practising the ones before it.
+        <SectionTitle eyebrow="the learning path" title="Six lands, one big idea each">
+          Kodo grows with your child. Every land introduces one new programming idea and keeps practising the ones before it. The last two
+          lands are the Grown-up Trail: functions, recursion and variables for teens and adults, open from day one.
         </SectionTitle>
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
           {stages.map((stage) => {

@@ -22,7 +22,7 @@ import StoryCard, { Circled } from './ui/StoryCard';
 import LineIcon from './ui/LineIcons';
 import SkillsRoad from './landing/SkillsRoad';
 import MeetTheCrew from './landing/MeetTheCrew';
-import { levels, stages, getLevelsByStage } from '@/data/levels';
+import { levels, kidStages, getLevelsByStage } from '@/data/levels';
 import { useProgress } from '@/hooks/useProgress';
 import { whenRevealed } from '@/lib/pageReveal';
 
@@ -501,7 +501,7 @@ export default function LandingPage() {
         </div>
 
         <div className="land-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {stages.map((stage, i) => {
+          {kidStages.map((stage, i) => {
             const stageLevels = getLevelsByStage(stage.id);
             const first = stageLevels[0].id;
             const last = stageLevels[stageLevels.length - 1].id;
@@ -541,6 +541,19 @@ export default function LandingPage() {
             );
           })}
         </div>
+
+        <Link
+          href="/levels#trail"
+          className="group mt-6 flex flex-col gap-3 rounded-[28px] bg-ink px-6 py-5 text-paper transition-transform duration-500 ease-[cubic-bezier(.3,1.5,.5,1)] hover:-translate-y-1 sm:flex-row sm:items-center"
+        >
+          <p className="flex-1 font-semibold text-paper/80">
+            <span className="mr-2 font-display text-2xl text-sun">Teen or grown-up?</span>
+            The Grown-up Trail has ten tougher puzzles with functions, recursion and variables. Start there any time.
+          </p>
+          <span className="flex items-center gap-2 font-display text-lg text-sun">
+            Try the Grown-up Trail <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          </span>
+        </Link>
       </section>
 
       {/* ──────────────────────────── The crew ────────────────────────── */}

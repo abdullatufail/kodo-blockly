@@ -57,7 +57,7 @@ export default function SiteHeader() {
           scrolled || open ? 'bg-paper' : 'bg-transparent'
         }`}
       >
-        <Link href="/" aria-label="Kodo home" className="flex items-center">
+        <Link href="/" aria-label="Kodo home" className="flex shrink-0 items-center whitespace-nowrap">
           <Logo />
         </Link>
 
@@ -79,7 +79,7 @@ export default function SiteHeader() {
             </Link>
           )}
           <UserMenu className="hidden md:flex" />
-          <FunButton href="/levels" color="ink" size="sm" icon={<PlayIcon className="h-4 w-4" />} className="hidden !rounded-full !font-sans !text-base !font-bold sm:inline-flex">
+          <FunButton href="/levels" color="ink" size="sm" icon={<PlayIcon className="h-4 w-4" />} className="!rounded-full !font-sans !text-base !font-bold max-sm:!hidden">
             Play now
           </FunButton>
           <button

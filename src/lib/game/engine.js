@@ -17,6 +17,10 @@ const STEP = {
 // Safety limits so a loop like "while path ahead { turn left }" can't freeze the tab.
 const MAX_ACTIONS = 400;
 const MAX_CHECKS = 2000;
+// How deep tricks may call each other (or themselves) before Kodo gives up.
+const MAX_DEPTH = 200;
+// The counter stays in a sensible range so "repeat count times" can't run away.
+const clampCount = (n) => Math.max(-99, Math.min(99, n));
 
 export function turn(dir, side) {
   const i = DIRECTIONS.indexOf(dir);
@@ -49,6 +53,12 @@ class Halt {
 }
 
 export function runProgram(level, program) {
+  // Trick definitions sit next to the main program; collect them first so a
+  // trick can be used before (or inside) its own definition.
+  const tricks = {};
+  for (const node of program) if (node.type === 'define') tricks[node.name] = node.body;
+  const main = program.filter((node) => node.type !== 'define');
+
   const state = {
     x: level.startPosition.x,
     y: level.startPosition.y,
@@ -58,6 +68,8 @@ export function runProgram(level, program) {
     steps: 0,
     actions: 0,
     checks: 0,
+    count: 0,
+    depth: 0,
   };
   const frames = [];
   const goal = level.goalPosition;
@@ -73,6 +85,13 @@ export function runProgram(level, program) {
     if (state.checks > MAX_CHECKS) throw new Halt('tooLong');
     const d = STEP[relativeDir(state.dir, cond)];
     return isOpen(level, state.x + d.x, state.y + d.y);
+  };
+
+  const berryTo = (cond) => {
+    state.checks += 1;
+    if (state.checks > MAX_CHECKS) throw new Halt('tooLong');
+    const d = STEP[relativeDir(state.dir, cond)];
+    return state.berries.has(`${state.x + d.x},${state.y + d.y}`);
   };
 
   const exec = (nodes) => {
@@ -118,6 +137,40 @@ export function runProgram(level, program) {
           exec(pathTo(node.cond) ? node.body : node.elseBody || []);
           break;
         }
+        case 'ifBerry': {
+          frames.push({ kind: 'check', id: node.id });
+          exec(berryTo(node.cond) ? node.body : node.elseBody || []);
+          break;
+        }
+        case 'call': {
+          const body = tricks[node.name];
+          frames.push({ kind: 'check', id: node.id });
+          if (!body) break;
+          state.depth += 1;
+          if (state.depth > MAX_DEPTH) throw new Halt('tooLong');
+          exec(body);
+          state.depth -= 1;
+          break;
+        }
+        case 'setCount': {
+          state.count = clampCount(node.value);
+          frames.push({ kind: 'check', id: node.id, count: state.count });
+          break;
+        }
+        case 'changeCount': {
+          state.count = clampCount(state.count + node.value);
+          frames.push({ kind: 'check', id: node.id, count: state.count });
+          break;
+        }
+        case 'repeatCount': {
+          // The number is read once, when the loop starts.
+          const times = state.count;
+          for (let i = 0; i < times; i++) {
+            frames.push({ kind: 'check', id: node.id, count: state.count });
+            exec(node.body);
+          }
+          break;
+        }
         case 'while': {
           while (pathTo(node.cond)) {
             frames.push({ kind: 'check', id: node.id });
@@ -143,7 +196,7 @@ export function runProgram(level, program) {
 
   let outcome = 'lost';
   try {
-    exec(program);
+    exec(main);
   } catch (err) {
     if (!(err instanceof Halt)) throw err;
     outcome = err.reason === 'home' ? 'win' : err.reason;

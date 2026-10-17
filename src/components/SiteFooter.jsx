@@ -38,6 +38,9 @@ export default function SiteFooter({ flush = false }) {
             <a href="https://github.com/abdullatufail/kodo-blockly" target="_blank" rel="noopener noreferrer" className="group">
               <WaveText text="GitHub" className="transition-colors group-hover:text-sun" />
             </a>
+            <a href="https://portfolio-master-gray-gamma.vercel.app/" target="_blank" rel="noopener noreferrer" className="group">
+              <WaveText text="Portfolio" className="transition-colors group-hover:text-sun" />
+            </a>
           </nav>
         </div>
 

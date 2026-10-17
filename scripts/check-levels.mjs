@@ -11,6 +11,15 @@ const whilePath = (cond, ...body) => ({ type: 'while', cond, body });
 const ifPath = (cond, body, elseBody = []) => ({ type: 'if', cond, body, elseBody });
 const ifElse = (cond, body, elseBody) => ({ type: 'if', cond, body, elseBody, isElse: true });
 const untilHome = (...body) => ({ type: 'untilHome', body });
+const define = (name, ...body) => ({ type: 'define', name, body });
+const call = (name) => ({ type: 'call', name });
+const ifBerry = (cond, body, elseBody = []) => ({ type: 'ifBerry', cond, body, elseBody });
+const setCount = (value) => ({ type: 'setCount', value });
+const changeCount = (value) => ({ type: 'changeCount', value });
+const repCount = (...body) => ({ type: 'repeatCount', body });
+
+// Reusable bits for the Grown-up Trail.
+const grab = define('A', m, R, R, m); // step in, turn around, step back
 
 // One 3-star solution per level.
 const solutions = {
@@ -34,6 +43,31 @@ const solutions = {
   18: [rep(3, rep(4, m), R, m, R, rep(4, m), L, m, L)],
   19: [untilHome(whilePath('AHEAD', m), ifElse('LEFT', [L], [R]))],
   20: [untilHome(ifElse('RIGHT', [R, m], [ifElse('AHEAD', [m], [L])]))],
+  21: [define('A', m, L, m, R), call('A'), call('A'), call('A'), call('A'), m],
+  22: [define('A', m, R, m, R, R, m, R), call('A'), m, rep(3, m, call('A')), m],
+  23: [grab, untilHome(m, ifBerry('LEFT', [L, call('A'), L]), ifBerry('RIGHT', [R, call('A'), R]))],
+  24: [define('A', m, ifPath('LEFT', [L]), call('A')), call('A')],
+  25: [
+    define('A', whilePath('AHEAD', m), R, R, whilePath('AHEAD', m)),
+    untilHome(m, ifPath('LEFT', [L, call('A'), L]), ifPath('RIGHT', [R, call('A'), R])),
+  ],
+  26: [setCount(2), rep(3, rep(2, repCount(m), R), changeCount(2))],
+  27: [
+    setCount(1),
+    rep(3, repCount(m), L, repCount(m), R, changeCount(1)),
+    changeCount(-1),
+    rep(3, repCount(m), R, repCount(m), L, changeCount(-1)),
+  ],
+  28: [setCount(5), rep(3, repCount(m), R, m, m, R, changeCount(-1), repCount(m), L, m, m, L, changeCount(-1))],
+  29: [define('A', ifElse('RIGHT', [R, m], [ifElse('AHEAD', [m], [L])]), call('A')), call('A')],
+  30: [
+    grab,
+    untilHome(
+      ifBerry('LEFT', [L, call('A'), L]),
+      ifBerry('RIGHT', [R, call('A'), R]),
+      ifElse('AHEAD', [m], [ifElse('LEFT', [L], [R])]),
+    ),
+  ],
 };
 
 // The blocks each solution needs, so a level never asks for a block it doesn't offer.
@@ -44,6 +78,12 @@ const BLOCK_FOR = {
   while: () => 'while_path',
   if: (n) => (n.isElse ? 'if_else_path' : 'if_path_ahead'),
   untilHome: () => 'repeat_until_goal',
+  define: () => 'define_trick',
+  call: () => 'call_trick',
+  ifBerry: () => 'if_berry',
+  setCount: () => 'set_count',
+  changeCount: () => 'change_count',
+  repeatCount: () => 'repeat_count',
 };
 const usedBlocks = (prog, out = new Set()) => {
   for (const n of prog) {

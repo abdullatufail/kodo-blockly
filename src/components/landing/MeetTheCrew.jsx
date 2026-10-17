@@ -16,7 +16,7 @@ function CrewMember({ id }) {
   const [mood, setMood] = useState('happy');
 
   return (
-    <li className="crew-card group text-left">
+    <li className="crew-card group flex flex-col items-center text-center sm:items-start sm:text-left">
       <div className="crew-disc crew-pop w-full max-w-[15rem]">
         <button
           type="button"

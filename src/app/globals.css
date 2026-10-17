@@ -355,7 +355,8 @@ h1, h2, h3 {
 }
 /* Ink text on the pastel blocks reads far better than zelos' default white. */
 .injectionDiv .blocklyText,
-.injectionDiv .blocklyDropdownText {
+.injectionDiv .blocklyDropdownText,
+:root .injectionDiv .blocklyField .blocklyDropdownText {
   fill: #0f3d26 !important;
 }
 .injectionDiv .blocklyEditableField > rect,

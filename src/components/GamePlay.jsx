@@ -16,7 +16,7 @@ import {
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/context/AuthContext';
 import { useAccessibility } from '@/context/AccessibilityContext';
-import { getNextLevelInStage, getStageById, getLevelsByStage } from '@/data/levels';
+import { getLevelById, getNextLevelInStage, getStageById, getLevelsByStage } from '@/data/levels';
 import { countBlocks, runProgram, scoreRun } from '@/lib/game/engine';
 import { sfx } from '@/lib/sfx';
 import { store } from '@/lib/storage';
@@ -36,6 +36,12 @@ const BLOCK_NAMES = {
   if_else_path: 'if path… else',
   while_path: 'while path',
   repeat_until_goal: 'repeat until home',
+  define_trick: 'to do trick',
+  call_trick: 'do trick',
+  if_berry: 'if berry',
+  set_count: 'set count',
+  change_count: 'change count',
+  repeat_count: 'repeat count times',
 };
 
 // Who says what: Kodo tells the story, Zip helps when something goes wrong,
@@ -48,7 +54,7 @@ const FEEDBACK = {
   tooLong: { who: 'zip', mood: 'wow', text: 'Whoa, Kodo got dizzy! That loop kept going and going. Does it ever stop?' },
 };
 
-const LOOP_BLOCKS = ['repeat_times', 'while_path', 'repeat_until_goal'];
+const LOOP_BLOCKS = ['repeat_times', 'while_path', 'repeat_until_goal', 'repeat_count'];
 const sameStep = (a, b) => a && b && (a.type === 'move' || a.type === 'turn') && a.type === b.type && a.dir === b.dir;
 
 // Bloo's eye for patterns: three of the same step in a row, or a little run of
@@ -81,6 +87,7 @@ export default function GamePlay({ level }) {
   const [completion, setCompletion] = useState(null);
   const [showHowTo, setShowHowTo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [count, setCount] = useState(null);
 
   const { user } = useAuth();
   const { saveProgress, getLevelProgress } = useProgress();
@@ -93,6 +100,8 @@ export default function GamePlay({ level }) {
   const saved = getLevelProgress(level.id);
   const speed = SPEEDS[speedIndex];
   const atLimit = level.maxBlocks && blocksUsed >= level.maxBlocks;
+  const usesCount = level.availableBlocks.includes('set_count');
+  const refreshers = (level.refresher || []).map(getLevelById).filter(Boolean);
 
   const say = useCallback(
     (message) => {
@@ -132,6 +141,7 @@ export default function GamePlay({ level }) {
     runIdRef.current += 1;
     boardRef.current?.reset();
     editorRef.current?.highlight(null);
+    setCount(null);
     setStatus('idle');
   };
 
@@ -149,7 +159,8 @@ export default function GamePlay({ level }) {
     }
 
     const program = editorRef.current?.getProgram() || [];
-    if (program.length === 0) {
+    // Tricks on their own do nothing: something under the Go block has to use them.
+    if (!program.some((node) => node.type !== 'define')) {
       sfx.sad();
       say(FEEDBACK.empty);
       return;
@@ -161,11 +172,15 @@ export default function GamePlay({ level }) {
 
     setStatus('running');
     setLastMissions(null);
+    setCount(usesCount ? 0 : null);
     say(FEEDBACK.running);
 
     await boardRef.current.play(result.frames, {
       speed: speed.value,
-      onFrame: (frame) => editorRef.current?.highlight(frame.id),
+      onFrame: (frame) => {
+        editorRef.current?.highlight(frame.id);
+        if (frame.count !== undefined) setCount(frame.count);
+      },
     });
     if (runId !== runIdRef.current) return; // stopped or reset while running
 
@@ -206,7 +221,12 @@ export default function GamePlay({ level }) {
   const showHint = () => {
     const next = (hintIndex + 1) % level.hints.length;
     setHintIndex(next);
-    say({ who: 'zip', mood: 'wink', text: `Hint ${next + 1} of ${level.hints.length}: ${level.hints[next]}` });
+    const last = next === level.hints.length - 1 && refreshers.length > 0;
+    say({
+      who: 'zip',
+      mood: 'wink',
+      text: `Hint ${next + 1} of ${level.hints.length}: ${level.hints[next]}${last ? ' Still stuck? The levels below build up this exact idea.' : ''}`,
+    });
   };
 
   // Bloo pipes up (once a level) when the code has steps a loop could replace.
@@ -313,6 +333,17 @@ export default function GamePlay({ level }) {
             </p>
           </div>
 
+          {refreshers.length > 0 && hintIndex >= 0 && (
+            <div className="buddy-pop flex flex-wrap items-center gap-2 rounded-2xl bg-grape-soft px-3 py-2 text-sm font-bold">
+              <span className="text-ink-soft">Stuck? Practise it first:</span>
+              {refreshers.map((l) => (
+                <Link key={l.id} href={`/level/${l.id}`} className="btn-chunky rounded-full bg-paper px-3 py-1 font-display font-semibold">
+                  {l.id}. {l.title}
+                </Link>
+              ))}
+            </div>
+          )}
+
           <ul className="flex flex-wrap gap-2" aria-label="Missions">
             {missions.map(({ id, label }, i) => {
               const done = lastMissions?.[id];
@@ -341,6 +372,15 @@ export default function GamePlay({ level }) {
             <div className="absolute inset-0 flex items-center justify-center">
               <GameBoard ref={boardRef} level={level} scenery={stage.scenery} />
             </div>
+            {usesCount && (
+              <span
+                className="absolute left-2 top-2 flex items-center gap-1.5 rounded-xl bg-sand px-2.5 py-1 font-display text-lg"
+                aria-live="polite"
+                title="What the counter says right now"
+              >
+                count <span className="min-w-[1.5ch] rounded-lg bg-paper px-1.5 text-center">{count ?? '–'}</span>
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
